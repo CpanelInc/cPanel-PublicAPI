@@ -1,0 +1,306 @@
+=head1 NAME
+
+cPanel::PublicAPI - A perl interface for interacting with cPanel
+
+=head1 SYNOPSIS
+
+  use cPanel::PublicAPI;
+  
+  # Auto detect authentication information
+  my $cp = cPanel::PublicAPI->new();
+  # or specify a user/password
+  my $cp = cPanel::PublicAPI->new( 'user' => 'someuser', 'pass' => 'somepass' );
+  # or specify an accesshash
+  my $cp = cPanel::PublicAPI->new('user' => 'someuser', 'accesshash' => $accesshash );
+  
+  # Perform an xml-api query
+  $cp->whm_api('listaccts');
+  # Pass parameters to the xml-api
+  $cp->whm_api('createacct', {'username' => 'someuser', 'password' } );
+  # Return JSON from xml-api (rather than a hash reference)
+  $cp->whm_api('version', undef, 'json');
+  
+  # Perform an API2 query
+  $cp->cpanel_api2_request('whostmgr',
+    {
+      'module' => Email,
+      'func' => 'listpopswithdisk',
+      'user' => 'someuser',
+    }
+  );
+  # Perform an API2 query when authenticated as a user
+  $cp->cpanel_api2_request('cpanel',
+    {
+      'module' => Email,
+      'func' => 'listpopswithdisk',
+    }
+  );
+  # Pass parameters to an API2 call
+  $cp->cpanel_api2_request('cpanel'
+    { 
+        'module' => 'Email',
+        'func' => 'addpop',
+    },
+    {
+        'domain' => 'domain.com',
+        'email' => 'username',
+        'password' => 'SojmASDM(#(Jinasifodanosd',
+        'quota' => 200
+    },
+  );
+  
+  # Perform an API1 query
+  $cp->cpanel_api1_request('whostmgr',
+    {
+        'module' => 'LastLogin',
+        'func' => 'lastlogin',
+        'user' => 'someuser'
+    }
+  )
+  # Pass parameters to an API1 query
+  $cp->cpanel_api1_request('cpanel',
+    {
+        'module' => 'Mysql',
+        'func' => 'adduserdb',
+    },
+    [ 'somedb', 'somedbuser', 'ALL' ]
+  );
+  
+  # perform an HTTP GET request against a URL
+  $cp->api_request('whostmgr', '/xml-api/laodavg', 'GET');
+  
+  # perform an HTTP GET request with parameters
+  $cp->api_request('whostmgr', '/xml-api/createacct', 'GET', {'username' => 'someuser', domain => 'domain.com'} );
+  
+  # perform an HTTP POST request (with parameters)
+  $cp->api_request('whostmgr', '/xml-api/createacct', 'POST', {'username' => 'someuser', domain => 'domain.com'} );
+
+=head1 DESCRIPTION
+
+cPanel::PublicAPI is a supported interface for interacting with cPanel's APIs over HTTP.
+This allows you to query either WHM or cPanel accounts from a perl interface.  The purpose
+of this module is to provide an easy to use interface into cPanel's various APIs without
+requiring much knowledge of how they work.
+
+=head2 Object Construction
+
+a cPanel::PublicAPI object is constructed with the new() method.
+
+  my $publicapi = cPanel::PublicAPI->new();
+
+When passed no parameters this will grab the accesshash from ~/.accesshash and create 
+the object using that.  If no .access_hash file exists, it will attempt to use the REMOTE_PASS
+environment variable, if that is not defined, object creation will error out.
+
+=head3 new() parameters
+
+options for new() are specified as a hash reference, the following keys and values are valid:
+
+=over
+
+=item * user - The username to authenticate as.
+
+=item * pass - The password to use for authentication.
+
+=item * accesshash - The accesshash to use for authentication.
+
+=item * timeout - The length of time (in seconds) before an http request should time out.  Default to 300.
+
+=item * ip - The IP to be queried.  defaults to 127.0.0.1, if host is defined it will take precedence over the ‘ip’ parameter.
+
+=item * host - The hostname to be queried.  Defaults to 127.0.0.1 via the “ip” parameter.
+
+=item * usessl - 1 or 0, Indicates whether communication should be performed over SSL or not (default to 1).
+
+=item * error_log - Path to where you want debug and error logging information to be written to.  If this is not defined or the module is unable to open the path in question, it will default to STDERR.
+
+=item * debug - Enables debug logging, which will place considerably more information into the error_log.
+
+=back
+
+=head3 Notes about authentication
+
+If you are not familiar with the ways to authenticate with cPanel, you should probably be aware that each
+WHM account has two possible sets of credentials that can lead to valid authentication.
+
+First we have the basic user/password combinations:
+
+  use Cpanel::PublicAPI;
+  my $pubapi = Cpanel::PublicAPI->new( ‘user’ => ‘foo’, ‘password’ => ‘bar’ );
+
+The other type of authentication is accesshash authentication.  To configure accesshashes visit “Setup remote access key”
+in WHM which will generate an accesshash for your server if one does not already exist. It will store the generated accesshash
+in /root/.accesshash.  To use an accesshash with this module you can do something like the following:
+
+  use Cpanel::PublicAPI;
+  my $pubapi = Cpanel::PublicAPI->new( ‘user’ => ‘foo’, ‘accesshash’ => $string_containing_access_hash );
+
+It should be noted that the access hash can contain new lines in it, but that will be stripped by the object when
+it attempts to perform a query.
+
+=head3 Dependencies
+
+This module is designed in a way where that it will fall back on dependencies if one is failed to load.
+This is to allow for compatibility with cPanel & WHM's internal perl parser and maintain working with
+standard perl implementation.  The order that it will fall back on serialization modules is:
+
+=over
+
+=item * JSON::Syck
+
+=item * JSON
+
+=item * JSON::XS
+
+=item * JSON::PP
+
+=back
+
+If you installed this module via CPAN, this should never be an issue.  If you are wishing to use this
+module on a system where you do not have access to compiled modules, JSON::PP is the recommended serializer.
+
+=head1 Querying the xml-api - whm_api()
+
+The XML-API which is WHM's API used for administrative functions is handled via the whm_api() method.
+
+The syntax for whmapi is:
+
+  $cp->whm_api($call [, \%formdata, $format ] );
+
+The meaning of these parameters is:
+
+=over
+
+=item * $call - The XML-API call you wish to query
+
+=item * $formdata - The parameters for the XML-API call in question, f.ex. for suspendacct, here you would pass in a hashref contain “user” and “reason”.  If there are no parameters, this can be undef or a blank hash.
+
+=item * $format - The format you wish for the xml-api to respond in.  The valid values here are “xml”, “json” or “ref” (perl hash reference).  This will default to returning a perl hash reference when the value is undef.
+
+=back
+
+To get more information on what calls are available and how they can be referenced, please see the xml-api documentation at L<http://docs.cpanel.net/twiki/bin/view/AllDocumentation/AutomationIntegration/XmlApi>.
+
+=head1 Querying cPanel's APIs
+
+cPanel itself has two sets of API calls available to it, these are categorized as API1 and API2.
+
+cPanel API calls are broken down into Modules, these module names relate to modules within the Cpanel namespace on a cPanel server.  Within each module is a set of functions that can be called.
+
+There are two distinct differences between API1 and API2:
+
+=over
+
+=item * API1 Takes in ordered parameters and returns strings
+
+=item * API2 uses named parameters and returns hashes or arrays of hashes
+
+=back
+
+Within the context of the public api, calling a function that is contained within API1 or API2 will always return a hash, but the specific data returned from the API call will be contained within the 'data' key of the response.
+
+For more information on the differences between API1 and API2 please see the documentation: L<http://docs.cpanel.net/twiki/bin/view/DeveloperResources/ApiBasics/WebHome>
+
+For information on calling API1 and API2 direct via HTTP, please see: L<http://docs.cpanel.net/twiki/bin/view/AllDocumentation/AutomationIntegration/CallingAPIFunctions>
+
+=head2 cpanel_api1_request()
+
+C<cpanel_api1_request()> is used to query cPanel's API1, the function used for querying API1 has the following syntax:
+
+  $cp->cpanel_api1_request($service, \%cfg [, \@params, $format ] );
+
+=over
+
+=item * $service - The service that you wish to query.  This can be 'cpanel' 'whostmgr', or 'webmail'.  It is important to note that what services you are able to query depends on the user you are authenticated as.  A user that does not have reseller or root access will not be able to use the whostmgr service.  If you are authenticated as root, you will not be able to query the 'cpanel' service.  When the service is set to 'whostmgr' a 'user' must be set in the $cfg hash.
+
+=item * $cfg - A hash reference describing the call you wish to make.  required parameters here are 'module' and 'func', which correspond to the module and function of the API call you wish to query. If you are querying the "whostmgr" service, you will need to specify 'user' as well.
+
+=item * $params - An array reference containing the parameters you wish to pass to the API call.
+
+=item * $format - The format you wish for the xml-api to respond in.  The valid values here are “xml”, “json” or “ref” (perl hash reference).  This will default to returning a perl hash reference when the value is undef.
+
+=back
+
+To see what modules and functions are available for making API1 calls, please see: L<http://docs.cpanel.net/twiki/bin/view/ApiDocs/Api1/WebHome>
+
+=head2 cpanel_api2_request()
+
+C<cpanel_api2_request()> is used to query cPanel's API2, the function use for querying API2 has the following syntax:
+
+  $cp->cpanel_api2_request( $service, \%cfg [, \%params, $format ] );
+
+=over
+
+=item * $service - The service that you wish to query.  This can be 'cpanel' 'whostmgr', or 'webmail'.  It is important to note that what services you are able to query depends on the user you are authenticated as.  A user that does not have reseller or root access will not be able to use the whostmgr service.  If you are authenticated as root, you will not be able to query the 'cpanel' service.  When the service is set to 'whostmgr' a 'user' must be set in the $cfg hash.
+
+=item * $cfg - A hash reference describing the call you wish to make.  required parameters here are 'module' and 'func', which correspond to the module and function of the API call you wish to query. If you are querying the "whostmgr" service, you will need to specify 'user' as well.
+
+=item * $params - An hash reference containing the parameters you wish to pass to the API call.
+
+=item * $format - The format you wish for the xml-api to respond in.  The valid values here are “xml”, “json” or “ref” (perl hash reference).  This will default to returning a perl hash reference when the value is undef.
+
+=back
+
+To see what modules and functions are available for making API2 calls, please see: L<http://docs.cpanel.net/twiki/bin/view/ApiDocs/Api2/WebHome>
+
+=head1 Making direct URL requests to cPanel & WHM.
+
+There are some situations where you will need to query cPanel and WHM URLs directly.  This should ONLY be done when there is not an API call available for the function you wish to query.
+
+The function used for querying URLs directly is api_request().  It will always return a string rather than converting the response into a hash reference.  It uses the following syntax:
+
+  $cp->api_request( $service, $uri, $method, \%formdata )
+
+=over
+
+=item * $service - The service that you wish to query.  This can be 'cpanel' 'whostmgr', or 'webmail'.
+
+=item * $uri - The URL you wish to query, e.g. '/xml-api/cpanel'
+
+=item * $method - 'GET' or 'POST'
+
+=item * $formdata - The data you wish to pass to the URL
+
+=back
+
+=head1 Other Features
+
+=over
+
+=item C<set_debug()>
+
+=back
+
+This function allows you to enable/disable debug mode by passing a value that evaluates to 'true' or 'false'.
+
+=over
+
+=item C<user()>
+
+=back
+
+Allows you to change the user that your PublicAPI object is authenticating with.
+
+=over
+
+=item C<pass()>
+
+=back
+
+Allows you to change the password that your PublicAPI object is authenticating with, this will remove the stored accesshash from the object.
+
+=over
+
+=item C<accesshash()>
+
+=back
+
+Allows you to change the accesshash that your PublicAPI object is authenticating with, this will remove the stored password from the object.
+
+=over
+
+=item C<$pubapi->{'error'}>
+
+=back
+
+Errors encountered within the class are stored here before being written out to the error_fh filehandle.  This can be used for checking the existance of query errors.
