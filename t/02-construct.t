@@ -34,15 +34,6 @@ check_options( 'accesshash' => $accesshash );
 my $pubapi = cPanel::PublicAPI->new( 'error_log' => 'error_log_test' );
 
 $pubapi->error('random string');
-
-# get the last line from the error_log file
-open( my $error_fh, '<', 'error_log_test' );
-seek( $error_fh, -14, 2 );
-my $last_line = readline($error_fh);
-chomp $last_line;
-close($error_fh);
-is( $last_line, 'random string', 'Error log written to on error' );
-
 is( $pubapi->{'error'}, 'random string', 'Error variable is stored correctly' );
 
 $pubapi->_init();

@@ -25,7 +25,7 @@ my $pubapi = cPanel::PublicAPI->new();
 
 isa_ok($pubapi, 'cPanel::PublicAPI');
 
-my $res = $pubapi->api_request( 'whostmgr', '/xml-api/loadavg', 'GET' );
+my $res = $pubapi->api_request( 'whostmgr', '/xml-api/loadavg', 'GET', {} );
 like( $$res, qr/<loadavg>\s*<one>\d+\.\d+<\/one>\s*<five>\d+\.\d+<\/five>\s*<fifteen>\d+\.\d+<\/fifteen>\s*<\/loadavg>*/, 'whm get no params' );
 
 # Create the test regex for reuse

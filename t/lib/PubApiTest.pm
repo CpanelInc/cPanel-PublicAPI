@@ -1,8 +1,8 @@
-package cPanel::PublicAPI::Test;
+package PubApiTest;
 
 use cPanel::PublicAPI;
 
-@cPanel::PublicAPI::Test::ISA= qw( cPanel::PublicAPI );
+@PubApiTest::ISA= qw( cPanel::PublicAPI );
 
 use strict;
 use warnings;

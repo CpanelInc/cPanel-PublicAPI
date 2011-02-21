@@ -1,0 +1,568 @@
+=head1 NAME
+
+cPanel::PublicAPI::WHM::API - Legacy interface for querying the xml-api.
+
+NOTE: This module is provided for legacy purposes, L<cPanel::PublicAPI> should be used instead
+
+=head1 DESCRIPTION
+
+This module provides legacy compatibility support between L<cPanel::PublicAPI> and Cpanel::Accounting (distributed with cPanel).
+This should never be used unless there is a very good reason to use it (such as having a script that uses Cpanel::Accounting).
+
+Every method contained within this object can be queried using cPanel::publicAPI::whm_api() instead.
+
+For more information on the calls within the methods contained here and what the parameter names mean, please read the documentation at: L<http://docs.cpanel.net/twiki/bin/view/AllDocumentation/AutomationIntegration/XmlApi>
+
+=head1 functions
+
+=head2 C<jsonapi_listaccts()>
+
+Used to list the accounts on a server.
+
+Syntax:
+
+  $pubapi->jsonapi_listaccts( $search, $searchtype );
+
+=head2 C<jsonapi_createacct()>
+
+Create a new cPanel account.
+
+Syntax:
+
+  $pubapi->jsonapi_createacct( $username, $domain, $password, $plan );
+
+=head2 C<jsonapi_removeacct()>
+
+Terminate an account.
+
+Syntax:
+
+  $pubapi->jsonapi_removeacct( $user );
+
+=head2 C<jsonapi_showversion()>
+
+Get the version of cPanel running on the server.
+
+Syntax:
+
+  $pubapi->jsonapi_showversion(  );
+
+=head2 C<jsonapi_version()>
+
+Get the version of cPanel running on the server (as as showversion)
+
+Syntax:
+
+  $pubapi->jsonapi_version(  );
+
+=head2 C<jsonapi_applist()>
+
+List out the available xml-api calls.
+
+Syntax:
+
+  $pubapi->jsonapi_applist(  );
+
+=head2 C<jsonapi_generatessl()>
+
+Generate an ssl certificate.
+
+Syntax:
+
+  $pubapi->jsonapi_generatessl( $host, $pass, $country, $state, $city, $co, $cod, $email, $xemail );
+
+=head2 C<jsonapi_generatessl_noemail()>
+
+Generate an SSL certificate without an email.
+
+Syntax:
+
+  $pubapi->jsonapi_generatessl_noemail( $noemail=1 );
+
+=head2 C<jsonapi_listcrts()>
+
+List out the certificates that exist on the server.
+
+Syntax:
+
+  $pubapi->jsonapi_listcrts(  );
+
+=head2 C<jsonapi_setresellerlimits()>
+
+Set the limits for a single reseller account.
+
+Syntax:
+
+  $pubapi->jsonapi_setresellerlimits(  );
+
+=head2 C<jsonapi_setresellerpackagelimit()>
+
+Set which packages a reseller account can use.
+
+Syntax:
+
+  $pubapi->jsonapi_setresellerpackagelimit( $user, $package, $allowerd, $number, $no_limit );
+
+=head2 C<jsonapi_setresellermainip()>
+
+Set a reseller's main IP.
+
+Syntax:
+
+  $pubapi->jsonapi_setresellermainip( $user, $ip );
+
+=head2 C<jsonapi_setresellerips()>
+
+Set the IP that a reseller has available to it.
+
+Syntax:
+
+  $pubapi->jsonapi_setresellerips( $user, $delegate, $ips );
+
+=head2 C<jsonapi_setresellernameservers()>
+
+Set the nameservers that a reseller uses by default.
+
+Syntax:
+
+  $pubapi->jsonapi_setresellernameservers( $user, $nameservers );
+
+=head2 C<jsonapi_suspendreseller()>
+
+Suspend a reseller and all of their accounts.
+
+Syntax:
+
+  $pubapi->jsonapi_suspendreseller( $user, $reason, $disallow );
+
+=head2 C<jsonapi_unsuspendreseller()>
+
+Unsuspend a reseller and all of their accounts.
+
+Syntax:
+
+  $pubapi->jsonapi_unsuspendreseller( $user );
+
+=head2 C<jsonapi_addzonerecord()>
+
+Add a record to a zone.
+
+Syntax:
+
+  $pubapi->jsonapi_addzonerecord( @args );
+
+=head2 C<jsonapi_editzonerecord()>
+
+Edit a zone record.
+
+Syntax:
+
+  $pubapi->jsonapi_editzonerecord(@args );
+
+=head2 C<jsonapi_removezonerecord()>
+
+Remove a line from a zone.
+
+Syntax:
+
+  $pubapi->jsonapi_removezonerecord( $domain, $Line );
+
+=head2 C<jsonapi_getzonerecord()>
+
+Get a record from a zone.
+
+Syntax:
+
+  $pubapi->jsonapi_getzonerecord( $domain, $Line );
+
+=head2 C<jsonapi_servicestatus()>
+
+Get the status of various services running on a system.
+
+Syntax:
+
+  $pubapi->jsonapi_servicestatus( $service );
+
+=head2 C<jsonapi_configureservice()>
+
+Enable/Disable various services.
+
+Syntax:
+
+  $pubapi->jsonapi_configureservice( $service, $enabled, $monitored );
+
+=head2 C<jsonapi_acctcounts()>
+
+Get the number of accounts on a system/that belong to a reseller.
+
+Syntax:
+
+  $pubapi->jsonapi_acctcounts( $user );
+
+=head2 C<jsonapi_domainuserdata()>
+
+Get the information about a specific domain's virtualhost.
+
+Syntax:
+
+  $pubapi->jsonapi_domainuserdata( $domain );
+
+=head2 C<jsonapi_editquota()>
+
+Edit a user's quota.
+
+Syntax:
+
+  $pubapi->jsonapi_editquota( $user, $quota );
+
+=head2 C<jsonapi_nvget()>
+
+Get non-volatile data.
+
+Syntax:
+
+  $pubapi->jsonapi_nvget( $key );
+
+=head2 C<jsonapi_nvset()>
+
+Set non-volatile data.
+
+Syntax:
+
+  $pubapi->jsonapi_nvset( $key, $value );
+
+=head2 C<jsonapi_myprivs()>
+
+See what privileges are available to your user.
+
+Syntax:
+
+  $pubapi->jsonapi_myprivs(  );
+
+=head2 C<jsonapi_listzones()>
+
+List all the zones available to a user.
+
+Syntax:
+
+  $pubapi->jsonapi_listzones(  );
+
+=head2 C<jsonapi_sethostname()>
+
+Set the hostname of a system.
+
+Syntax:
+
+  $pubapi->jsonapi_sethostname( $hostname );
+
+=head2 C<jsonapi_setresolvers()>
+
+Set the resolvers a system uses.
+
+Syntax:
+
+  $pubapi->jsonapi_setresolvers( $nameserver1, $nameserver2, $nameserver3 );
+
+=head2 C<jsonapi_addip()>
+
+Add a new IP to a server.
+
+Syntax:
+
+  $pubapi->jsonapi_addip( $ip, $netmask );
+
+=head2 C<jsonapi_delip()>
+
+Remove an IP from a server.
+
+Syntax:
+
+  $pubapi->jsonapi_delip( $ip, $ethernetdev, $skipifshutdown );
+
+=head2 C<jsonapi_listips()>
+
+List the IPs on a server.
+
+Syntax:
+
+  $pubapi->jsonapi_listips(  );
+
+=head2 C<jsonapi_dumpzone()>
+
+Get the contents of a zone file.
+
+Syntax:
+
+  $pubapi->jsonapi_dumpzone( $domain );
+
+=head2 C<jsonapi_listpkgs()>
+
+List the packages available to your user.
+
+Syntax:
+
+  $pubapi->jsonapi_listpkgs(  );
+
+=head2 C<jsonapi_limitbw()>
+
+Limit the amount of bandwidth available to an account.
+
+Syntax:
+
+  $pubapi->jsonapi_limitbw( $user, $bwlimit );
+
+=head2 C<jsonapi_showbw()>
+
+Show the amount of BW used by an account.
+
+Syntax:
+
+  $pubapi->jsonapi_showbw( $month, $year, $showres, $search, $searchtype );
+
+=head2 C<jsonapi_killdns()>
+
+Remove a DNS zone.
+
+Syntax:
+
+  $pubapi->jsonapi_killdns( $domain );
+
+=head2 C<jsonapi_adddns()>
+
+Add a dns zone.
+
+Syntax:
+
+  $pubapi->jsonapi_adddns( $domain, $ip, $trueowner );
+
+=head2 C<jsonapi_changepackage()>
+
+Change an Account's Package.
+
+Syntax:
+
+  $pubapi->jsonapi_changepackage( $user, $pkg );
+
+=head2 C<jsonapi_modifyacct()>
+
+Modify an Account's limits.
+
+Syntax:
+
+  $pubapi->jsonapi_modifyacct( $user, $domain, $HASCGI, $CPTHEME, $LANG, $MAXPOP, $MAXFTP, $MAXLST, $MAXSUB, $MAXPARK, $MAXADDON, $MAXSQL, $shell );
+
+=head2 C<jsonapi_suspendacct()>
+
+Suspend an account.
+
+Syntax:
+
+  $pubapi->jsonapi_suspendacct( $user, $reason );
+
+=head2 C<jsonapi_unsuspendacct()>
+
+Unsuspend an account.
+
+Syntax:
+
+  $pubapi->jsonapi_unsuspendacct( $user );
+
+=head2 C<jsonapi_listsuspended()>
+
+List the suspended accounts on a server.
+
+Syntax:
+
+  $pubapi->jsonapi_listsuspended(  );
+
+=head2 C<jsonapi_addpkg()>
+
+Add a new package.
+
+Syntax:
+
+  $pubapi->jsonapi_addpkg( $pkgname, $quota, $ip, $cgi, $frontpage, $cpmod, $maxftp, $maxsql, $maxpop, $maxlst, $maxsub, $maxpark, $maxaddon, $featurelist, $hasshell, $bwlimit );
+
+=head2 C<jsonapi_killpkg()>
+
+Remove a package.
+
+Syntax:
+
+  $pubapi->jsonapi_killpkg( $pkg );
+
+=head2 C<jsonapi_editpkg()>
+
+Edit a package.
+
+Syntax:
+
+  $pubapi->jsonapi_editpkg( $pkgname, $quota, $ip, $cgi, $frontpage, $cpmod, $maxftp, $maxsql, $maxpop, $maxlst, $maxsub, $maxpark, $maxaddon, $featurelist, $hasshell, $bwlimit );
+
+=head2 C<jsonapi_setacls()>
+
+Change features available to a reseller.
+
+Syntax:
+
+  $pubapi->jsonapi_setacls( $reseller, $acllist );
+
+=head2 C<jsonapi_terminatereseller()>
+
+Remove a reseller.
+
+Syntax:
+
+  $pubapi->jsonapi_terminatereseller( $reseller, $verify );
+
+=head2 C<jsonapi_resellerstats()>
+
+Get statistics on a specific reseller.
+
+Syntax:
+
+  $pubapi->jsonapi_resellerstats( $reseller );
+
+=head2 C<jsonapi_setupreseller()>
+
+Make a cPanel account a Reseller account.
+
+Syntax:
+
+  $pubapi->jsonapi_setupreseller( $user, $makeowner );
+
+=head2 C<jsonapi_lookupnsip()>
+
+Get the IP for a nameserver.
+
+Syntax:
+
+  $pubapi->jsonapi_lookupnsip( $nameserver );
+
+=head2 C<jsonapi_listresellers()>
+
+List all the resellers on a system.
+
+Syntax:
+
+  $pubapi->jsonapi_listresellers(  );
+
+=head2 C<jsonapi_listacls()>
+
+List all of the ACL lists available.
+
+Syntax:
+
+  $pubapi->jsonapi_listacls(  );
+
+=head2 C<jsonapi_saveacllist()>
+
+Save a new ACL list.
+
+Syntax:
+
+  $pubapi->jsonapi_saveacllist( $acllist );
+
+=head2 C<jsonapi_unsetupreseller()>
+
+Remove reseller permissions from an account.
+
+Syntax:
+
+  $pubapi->jsonapi_unsetupreseller( $user );
+
+=head2 C<jsonapi_gethostname()>
+
+Get the hostname of the server currently being queried.
+
+Syntax:
+
+  $pubapi->jsonapi_gethostname(  );
+
+=head2 C<jsonapi_fetchsslinfo()>
+
+Get information on a specific SSL certificate.
+
+Syntax:
+
+  $pubapi->jsonapi_fetchsslinfo( $domain, $crtdata );
+
+=head2 C<jsonapi_installssl()>
+
+Install a new SSL certificate.
+
+Syntax:
+
+  $pubapi->jsonapi_installssl( $domain, $user, $cert, $key, $cab, $ip );
+
+=head2 C<jsonapi_passwd()>
+
+Change an account's password.
+
+Syntax:
+
+  $pubapi->jsonapi_passwd( $user, $pass );
+
+=head2 C<jsonapi_getlanglist()>
+
+Get a list of languages available on a system.
+
+Syntax:
+
+  $pubapi->jsonapi_getlanglist(  );
+
+=head2 C<jsonapi_reboot()>
+
+Reboot the server.
+
+Syntax:
+
+  $pubapi->jsonapi_reboot( $force );
+
+=head2 C<jsonapi_accountsummary_user()>
+
+Get a summary of an account.
+
+Syntax:
+
+  $pubapi->jsonapi_accountsummary_user( $user );
+
+=head2 C<jsonapi_accountsummary_domain()>
+
+Get the summary of an account by specifying the domain.
+
+Syntax:
+
+  $pubapi->jsonapi_accountsummary_domain( $domain );
+
+=head2 C<jsonapi_loadavg()>
+
+Get the loadavg on the system.
+
+Syntax:
+
+  $pubapi->jsonapi_loadavg(  );
+
+=head2 C<jsonapi_restartservice()>
+
+Restart a service.
+
+Syntax:
+
+  $pubapi->jsonapi_restartservice( $service );
+
+=head2 C<jsonapi_setsiteip_user()>
+
+Set the IP for a specific user.
+
+Syntax:
+
+  $pubapi->jsonapi_setsiteip_user( $user, $ip );
+
+=head2 C<jsonapi_setsiteip_domain()>
+
+Set the IP for a specific domain.
+
+Syntax:
+
+  $pubapi->jsonapi_setsiteip_domain( $domain, $ip );

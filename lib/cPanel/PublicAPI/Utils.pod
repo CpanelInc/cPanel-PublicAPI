@@ -1,0 +1,13 @@
+=head1 NAME
+
+cPanel::PublicAPI::Utils - Provides some internally used utility functions for cPanel::PublicAPI, should never be used externally.
+
+=head1 Subroutines
+
+=head2 remove_trailing_newline()
+
+Removes the training newline from the provided string
+
+=head2 get_string_with_collapsed_trailing_eols
+
+Takes an array or array of arrays and puts them into a newline-seperated string.

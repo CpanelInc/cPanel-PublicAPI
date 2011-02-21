@@ -1,0 +1,191 @@
+=head1 NAME
+
+cPanel::PublicAPI::WHM::DNS - A module for interacting with WHM's DNS clustering system.
+
+=head1 DESCRIPTION
+
+This module is intended as a client for querying WHM's DNS clustering system.  Unless you are specifically looking to write your own interaction with cPanel's DNS system, you should never need to use this module, rather the DNS functions within cPanel's XML-API should do what you are looking for: L<http://docs.cpanel.net/twiki/bin/vief/AllDocumentation/AutomationIntegration/XmlApi#DNS%20functions>
+
+=head1 functions
+
+The functions contained within this module share a similiar naming scheme for the variables used within, please consult the list below when figuring out what each function does.
+
+=over
+
+=item * $zone - The name of the domain to be used.
+
+=item * $dnsuniqid - A Unique string used to identify uniquely (suggested: 32 character alphanumeric)
+
+=item * $zones - A pipe seperated list of domains.
+
+=item * $zonedata - The contents of a zone file, usually used for sending changes of a zone to another system.
+
+=back
+
+=head2 C<addtocluster()>
+
+Add a machine to a DNS cluster.
+
+Call specific parameters:
+
+=over
+
+=item * $clustermaster - The IP of the machine being added to the cluster.
+
+=item * $user - The user to authenticate DNS requests as.
+
+=item * $pass - The accesshash to authenticate DNS requests with
+
+=item * $version - The version of cPanel/WHM of the machine being added to the cluster
+
+=back
+
+Syntax:
+
+  $pubapi->addtocluster(  $user, $clustermaster, $accesshash, $version )
+
+=head2 C<getzone_local()>
+
+Get the contents of a zone file.
+
+Syntax:
+
+  $pubapi->getzone_local( $zone, $dnsuniqid )
+
+=head2 C<getzones_local()>
+
+Get the contents of multiple zone files, this will be split up as:
+
+  cpdnszone-%URI ENCODED ZONENAME%=%URI encoded version of zone file%&cpdnszone...
+
+for each zone in the response
+
+Syntax:
+
+  $pubapi->getzones_local( $zones, $dnsuniqid )
+
+=head2 C<getallzones_local()>
+
+Like getzones_local, but will return all zones in a cluster.
+
+Syntax:
+
+  $pubapi->getallzones_local( $dnsuniqid )
+
+=head2 C<cleandns_local()>
+
+Clean up any old or unused DNS zones from named.conf.
+
+Syntax:
+
+  $pubapi->cleandns_local( $dnsuniqid )
+
+=head2 C<getips_local()>
+
+Get a list of extra IPs available on a system, response will be formated as:
+
+$ip:$netmask:$broadcast
+
+Syntax:
+
+  $pubapi->getips_local( $dnsuniqid )
+
+=head2 C<getpath_local()>
+
+Returns a newline separated list containing all the machines that this machine is clustered with in the following format:
+
+$hostname $remote_host
+
+Syntax:
+
+  $pubapi->getpath_local( $dnsuniqid )
+
+=head2 C<removezone_local()>
+
+Remove a DNS zone.
+
+Syntax:
+
+  $pubapi->removezone_local( $zone, $dnsuniqid )
+
+=head2 C<removezones_local()>
+
+Remove multiple DNS zones.
+
+Syntax:
+
+  $pubapi->removezones_local( $zones, $dnsuniqid )
+
+=head2 C<reloadzones_local()>
+
+Force bind to re-read zones files via the "rndc reload" command.
+
+Syntax:
+
+  $pubapi->reloadzones_local( $dnsuniqid, $zones )
+
+=head2 C<reloadbind_local()>
+
+Run the 'rndc reload' command.  If no zones are specified, bind will reload everything.
+
+Syntax:
+
+  $pubapi->reloadbind_local( $dnsuniqid, $zone )
+
+=head2 C<reconfigbind_local()>
+
+Run the 'rndc reconfig' command.
+
+Syntax:
+
+  $pubapi->reconfigbind_local( $dnsuniqid, $zone )
+
+=head2 C<quickzoneadd_local()>
+
+Add a new zone to a system.
+
+Syntax:
+
+  $pubapi->quickzoneadd_local( $zone, $zonedata, $dnsuniqid )
+
+=head2 C<savezone_local()>
+
+Update a zone file with the data specified in $zonedata.
+
+Syntax:
+
+  $pubapi->savezone_local( $zone, $zonedata, $dnsuniqid )
+
+=head2 C<synczones_local()>
+
+Send a dump of all zones and update zones when required.  The zones are sent within the $formdata in the following format:
+
+  cpdnszone-%URI ENCODED ZONENAME%=%URI encoded version of zone file%&cpdnszone...
+
+Syntax:
+
+  $pubapi->synczones_local( $formdata, $dnsuniqid )
+
+=head2 C<addzoneconf_local()>
+
+Add a zone to the named.conf file.
+
+Syntax:
+
+  $pubapi->addzoneconf_local( $zone, $dnsuniqid )
+
+=head2 C<getzonelist_local()>
+
+Get a newline seperated list of the zones on a system.
+
+Syntax:
+
+  $pubapi->getzonelist_local( $dnsuniqid )
+
+=head2 C<zoneexists_local()>
+
+Return boolean value indicating whether a zone exists on a remote system or not.
+
+Syntax:
+
+  $pubapi->zoneexists_local( $zone, $dnsuniqid )

@@ -1,0 +1,20 @@
+=head1 NAME
+
+cPanel::PublicAPI::WHM::CachedVersion - Allows for lookups of remote versions of cPanel & WHM.
+
+=head1 DESCRIPTION
+
+This module allows you to lookup the version of a remote instance of cPanel & WHM based off of the contents of /var/cpanel/accounting/cache, if the server is not stored there, it will perform the version call.
+
+/var/cpanel must exist in order for this to work, /var/cpanel/accounting and /var/cpanel/accounting/cache will be created if necessary.
+
+=head1 cached_version()
+
+This module consists of a single function - cPanel::PublicAPI::WHM::CachedVersion::cached_version().  It expects an already configured publicapi instance.
+
+Syntax:
+
+  my $pubapi = cPanel::PublicAPI::WHM::CachedVersion->new( 'host' => 'somehost', 'user' => 'someuser', ... );
+  my $version = $pubapi->cached_version();
+
+This will return a string containing the version of the cpanel/whm server being queried.

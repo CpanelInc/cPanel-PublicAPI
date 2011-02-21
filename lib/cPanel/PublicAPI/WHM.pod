@@ -1,0 +1,120 @@
+=head1 NAME
+
+cPanel::PublicAPI::WHM - Legacy interface for querying WHM.
+
+NOTE: This module is provided for legacy purposes, L<cPanel::PublicAPI> should be used instead
+
+=head1 DESCRIPTION
+
+This module provides legacy compatibility support between L<cPanel::PublicAPI> and Cpanel::Accounting (distributed with cPanel).
+This should never be used unless there is a very good reason to use it (such as having a script that uses Cpanel::Accounting).
+
+=head1 functions
+
+=head2 C<simple_get_whmreq()>
+
+This function makes a HTTP GET query to WHM, an equivlant function within L<cPanel::PublicAPI> is C<api_request()>.
+This function uses two arrays to specify arguments to be passed to a specific URI.
+This means that you would need to ensure that they both have the key/pair values in the same place in each array, f.ex:
+
+  $argref = ['value1', 'value2', 'value3'];
+  $argnameref = ['key1', 'key2', 'key3'];
+
+would be be specifying:
+
+  key1=value1&key2=value2&key3=value3
+
+to be passed to the specified URI.
+
+Arguments
+
+=over
+
+=item * $uri - The URI you to be queried.
+
+=item * $argref - An array reference containing the values to be passed.
+
+=item * $argnameref - An array reference containing the keys to be passed.
+
+=item * $opts - An array reference containing strings like 'key1=value1' to be passed to the URI.
+
+=back
+
+This will return a scalar reference of the data returned by cpsrvd.
+
+=head2 C<simple_post_whmreq()>
+
+This function makes a HTTP POST query to WHM, an equivlant function within L<cPanel::PublicAPI> is C<api_request()>.
+This function uses two arrays to specify arguments to be passed to a specific URI.
+This means that you would need to ensure that they both have the key/pair values in the same place in each array, f.ex:
+
+  $argref = ['value1', 'value2', 'value3'];
+  $argnameref = ['key1', 'key2', 'key3'];
+
+would be be specifying:
+
+  key1=value1&key2=value2&key3=value3
+
+to be passed to the specified URI.
+
+Arguments
+
+=over
+
+=item * $uri - The URI you to be queried.
+
+=item * $argref - An array reference containing the values to be passed.
+
+=item * $argnameref - An array reference containing the keys to be passed.
+
+=item * $opts - An array reference containing strings like 'key1=value1' to be passed to the URI.
+
+=back
+
+This will return a scalar containing the data returned by cpsrvd.
+
+=head2 C<whmreq()>
+
+This function is used to querying WHM with either GET or POST data.
+
+=over
+
+=item * $uri - The URI to be queried.
+
+=item * $method - The method of querying the URI (either GET or POST).
+
+=item * $formdata - The data to be passed to the URI formatted as formdata (e.g. 'key1=value1&key2=value2').
+
+=back
+
+=head2 C<api1()>
+
+This function is used to query cPanel's API1.  This will return the XML response from the XML API's cpanel call.
+
+=over
+
+=item * $user - The user to execute an API call for.
+
+=item * $module - The module of the API call to be executed.
+
+=item * $func - The name of the API call to be executed.
+
+=item * @params - An array containing the parameters for the API call.
+
+=back
+
+=head2 C<api2()>
+
+This function is used to query cPanel's API1.  This will return the XML response from the XML API's cpanel call.
+
+=over
+
+=item * $user - The user to execute an API call for.
+
+=item * $module - The module of the API call to be executed.
+
+=item * $func - The name of the API call to be executed.
+
+=item * %params - An hash containing the parameters for the API call.
+
+=back

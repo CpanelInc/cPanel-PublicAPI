@@ -1,0 +1,568 @@
+=head1 NAME
+
+cPanel::PublicAPI::WHM::API - Legacy interface for querying the xml-api.
+
+NOTE: This module is provided for legacy purposes, L<cPanel::PublicAPI> should be used instead
+
+=head1 DESCRIPTION
+
+This module provides legacy compatibility support between L<cPanel::PublicAPI> and Cpanel::Accounting (distributed with cPanel).
+This should never be used unless there is a very good reason to use it (such as having a script that uses Cpanel::Accounting).
+
+Every method contained within this object can be queried using cPanel::publicAPI::whm_api() instead.
+
+For more information on the calls within the methods contained here and what the parameter names mean, please read the documentation at: L<http://docs.cpanel.net/twiki/bin/view/AllDocumentation/AutomationIntegration/XmlApi>
+
+=head1 functions
+
+=head2 C<api_listaccts()>
+
+Used to list the accounts on a server.
+
+Syntax:
+
+  $pubapi->api_listaccts( $search, $searchtype );
+
+=head2 C<api_createacct()>
+
+Create a new cPanel account.
+
+Syntax:
+
+  $pubapi->api_createacct( $username, $domain, $password, $plan );
+
+=head2 C<api_removeacct()>
+
+Terminate an account.
+
+Syntax:
+
+  $pubapi->api_removeacct( $user );
+
+=head2 C<api_showversion()>
+
+Get the version of cPanel running on the server.
+
+Syntax:
+
+  $pubapi->api_showversion(  );
+
+=head2 C<api_version()>
+
+Get the version of cPanel running on the server (as as showversion)
+
+Syntax:
+
+  $pubapi->api_version(  );
+
+=head2 C<api_applist()>
+
+List out the available xml-api calls.
+
+Syntax:
+
+  $pubapi->api_applist(  );
+
+=head2 C<api_generatessl()>
+
+Generate an ssl certificate.
+
+Syntax:
+
+  $pubapi->api_generatessl( $host, $pass, $country, $state, $city, $co, $cod, $email, $xemail );
+
+=head2 C<api_generatessl_noemail()>
+
+Generate an SSL certificate without an email.
+
+Syntax:
+
+  $pubapi->api_generatessl_noemail( $noemail=1 );
+
+=head2 C<api_listcrts()>
+
+List out the certificates that exist on the server.
+
+Syntax:
+
+  $pubapi->api_listcrts(  );
+
+=head2 C<api_setresellerlimits()>
+
+Set the limits for a single reseller account.
+
+Syntax:
+
+  $pubapi->api_setresellerlimits(  );
+
+=head2 C<api_setresellerpackagelimit()>
+
+Set which packages a reseller account can use.
+
+Syntax:
+
+  $pubapi->api_setresellerpackagelimit( $user, $package, $allowerd, $number, $no_limit );
+
+=head2 C<api_setresellermainip()>
+
+Set a reseller's main IP.
+
+Syntax:
+
+  $pubapi->api_setresellermainip( $user, $ip );
+
+=head2 C<api_setresellerips()>
+
+Set the IP that a reseller has available to it.
+
+Syntax:
+
+  $pubapi->api_setresellerips( $user, $delegate, $ips );
+
+=head2 C<api_setresellernameservers()>
+
+Set the nameservers that a reseller uses by default.
+
+Syntax:
+
+  $pubapi->api_setresellernameservers( $user, $nameservers );
+
+=head2 C<api_suspendreseller()>
+
+Suspend a reseller and all of their accounts.
+
+Syntax:
+
+  $pubapi->api_suspendreseller( $user, $reason, $disallow );
+
+=head2 C<api_unsuspendreseller()>
+
+Unsuspend a reseller and all of their accounts.
+
+Syntax:
+
+  $pubapi->api_unsuspendreseller( $user );
+
+=head2 C<api_addzonerecord()>
+
+Add a record to a zone.
+
+Syntax:
+
+  $pubapi->api_addzonerecord( @args );
+
+=head2 C<api_editzonerecord()>
+
+Edit a zone record.
+
+Syntax:
+
+  $pubapi->api_editzonerecord(@args );
+
+=head2 C<api_removezonerecord()>
+
+Remove a line from a zone.
+
+Syntax:
+
+  $pubapi->api_removezonerecord( $domain, $Line );
+
+=head2 C<api_getzonerecord()>
+
+Get a record from a zone.
+
+Syntax:
+
+  $pubapi->api_getzonerecord( $domain, $Line );
+
+=head2 C<api_servicestatus()>
+
+Get the status of various services running on a system.
+
+Syntax:
+
+  $pubapi->api_servicestatus( $service );
+
+=head2 C<api_configureservice()>
+
+Enable/Disable various services.
+
+Syntax:
+
+  $pubapi->api_configureservice( $service, $enabled, $monitored );
+
+=head2 C<api_acctcounts()>
+
+Get the number of accounts on a system/that belong to a reseller.
+
+Syntax:
+
+  $pubapi->api_acctcounts( $user );
+
+=head2 C<api_domainuserdata()>
+
+Get the information about a specific domain's virtualhost.
+
+Syntax:
+
+  $pubapi->api_domainuserdata( $domain );
+
+=head2 C<api_editquota()>
+
+Edit a user's quota.
+
+Syntax:
+
+  $pubapi->api_editquota( $user, $quota );
+
+=head2 C<api_nvget()>
+
+Get non-volatile data.
+
+Syntax:
+
+  $pubapi->api_nvget( $key );
+
+=head2 C<api_nvset()>
+
+Set non-volatile data.
+
+Syntax:
+
+  $pubapi->api_nvset( $key, $value );
+
+=head2 C<api_myprivs()>
+
+See what privileges are available to your user.
+
+Syntax:
+
+  $pubapi->api_myprivs(  );
+
+=head2 C<api_listzones()>
+
+List all the zones available to a user.
+
+Syntax:
+
+  $pubapi->api_listzones(  );
+
+=head2 C<api_sethostname()>
+
+Set the hostname of a system.
+
+Syntax:
+
+  $pubapi->api_sethostname( $hostname );
+
+=head2 C<api_setresolvers()>
+
+Set the resolvers a system uses.
+
+Syntax:
+
+  $pubapi->api_setresolvers( $nameserver1, $nameserver2, $nameserver3 );
+
+=head2 C<api_addip()>
+
+Add a new IP to a server.
+
+Syntax:
+
+  $pubapi->api_addip( $ip, $netmask );
+
+=head2 C<api_delip()>
+
+Remove an IP from a server.
+
+Syntax:
+
+  $pubapi->api_delip( $ip, $ethernetdev, $skipifshutdown );
+
+=head2 C<api_listips()>
+
+List the IPs on a server.
+
+Syntax:
+
+  $pubapi->api_listips(  );
+
+=head2 C<api_dumpzone()>
+
+Get the contents of a zone file.
+
+Syntax:
+
+  $pubapi->api_dumpzone( $domain );
+
+=head2 C<api_listpkgs()>
+
+List the packages available to your user.
+
+Syntax:
+
+  $pubapi->api_listpkgs(  );
+
+=head2 C<api_limitbw()>
+
+Limit the amount of bandwidth available to an account.
+
+Syntax:
+
+  $pubapi->api_limitbw( $user, $bwlimit );
+
+=head2 C<api_showbw()>
+
+Show the amount of BW used by an account.
+
+Syntax:
+
+  $pubapi->api_showbw( $month, $year, $showres, $search, $searchtype );
+
+=head2 C<api_killdns()>
+
+Remove a DNS zone.
+
+Syntax:
+
+  $pubapi->api_killdns( $domain );
+
+=head2 C<api_adddns()>
+
+Add a dns zone.
+
+Syntax:
+
+  $pubapi->api_adddns( $domain, $ip, $trueowner );
+
+=head2 C<api_changepackage()>
+
+Change an Account's Package.
+
+Syntax:
+
+  $pubapi->api_changepackage( $user, $pkg );
+
+=head2 C<api_modifyacct()>
+
+Modify an Account's limits.
+
+Syntax:
+
+  $pubapi->api_modifyacct( $user, $domain, $HASCGI, $CPTHEME, $LANG, $MAXPOP, $MAXFTP, $MAXLST, $MAXSUB, $MAXPARK, $MAXADDON, $MAXSQL, $shell );
+
+=head2 C<api_suspendacct()>
+
+Suspend an account.
+
+Syntax:
+
+  $pubapi->api_suspendacct( $user, $reason );
+
+=head2 C<api_unsuspendacct()>
+
+Unsuspend an account.
+
+Syntax:
+
+  $pubapi->api_unsuspendacct( $user );
+
+=head2 C<api_listsuspended()>
+
+List the suspended accounts on a server.
+
+Syntax:
+
+  $pubapi->api_listsuspended(  );
+
+=head2 C<api_addpkg()>
+
+Add a new package.
+
+Syntax:
+
+  $pubapi->api_addpkg( $pkgname, $quota, $ip, $cgi, $frontpage, $cpmod, $maxftp, $maxsql, $maxpop, $maxlst, $maxsub, $maxpark, $maxaddon, $featurelist, $hasshell, $bwlimit );
+
+=head2 C<api_killpkg()>
+
+Remove a package.
+
+Syntax:
+
+  $pubapi->api_killpkg( $pkg );
+
+=head2 C<api_editpkg()>
+
+Edit a package.
+
+Syntax:
+
+  $pubapi->api_editpkg( $pkgname, $quota, $ip, $cgi, $frontpage, $cpmod, $maxftp, $maxsql, $maxpop, $maxlst, $maxsub, $maxpark, $maxaddon, $featurelist, $hasshell, $bwlimit );
+
+=head2 C<api_setacls()>
+
+Change features available to a reseller.
+
+Syntax:
+
+  $pubapi->api_setacls( $reseller, $acllist );
+
+=head2 C<api_terminatereseller()>
+
+Remove a reseller.
+
+Syntax:
+
+  $pubapi->api_terminatereseller( $reseller, $verify );
+
+=head2 C<api_resellerstats()>
+
+Get statistics on a specific reseller.
+
+Syntax:
+
+  $pubapi->api_resellerstats( $reseller );
+
+=head2 C<api_setupreseller()>
+
+Make a cPanel account a Reseller account.
+
+Syntax:
+
+  $pubapi->api_setupreseller( $user, $makeowner );
+
+=head2 C<api_lookupnsip()>
+
+Get the IP for a nameserver.
+
+Syntax:
+
+  $pubapi->api_lookupnsip( $nameserver );
+
+=head2 C<api_listresellers()>
+
+List all the resellers on a system.
+
+Syntax:
+
+  $pubapi->api_listresellers(  );
+
+=head2 C<api_listacls()>
+
+List all of the ACL lists available.
+
+Syntax:
+
+  $pubapi->api_listacls(  );
+
+=head2 C<api_saveacllist()>
+
+Save a new ACL list.
+
+Syntax:
+
+  $pubapi->api_saveacllist( $acllist );
+
+=head2 C<api_unsetupreseller()>
+
+Remove reseller permissions from an account.
+
+Syntax:
+
+  $pubapi->api_unsetupreseller( $user );
+
+=head2 C<api_gethostname()>
+
+Get the hostname of the server currently being queried.
+
+Syntax:
+
+  $pubapi->api_gethostname(  );
+
+=head2 C<api_fetchsslinfo()>
+
+Get information on a specific SSL certificate.
+
+Syntax:
+
+  $pubapi->api_fetchsslinfo( $domain, $crtdata );
+
+=head2 C<api_installssl()>
+
+Install a new SSL certificate.
+
+Syntax:
+
+  $pubapi->api_installssl( $domain, $user, $cert, $key, $cab, $ip );
+
+=head2 C<api_passwd()>
+
+Change an account's password.
+
+Syntax:
+
+  $pubapi->api_passwd( $user, $pass );
+
+=head2 C<api_getlanglist()>
+
+Get a list of languages available on a system.
+
+Syntax:
+
+  $pubapi->api_getlanglist(  );
+
+=head2 C<api_reboot()>
+
+Reboot the server.
+
+Syntax:
+
+  $pubapi->api_reboot( $force );
+
+=head2 C<api_accountsummary_user()>
+
+Get a summary of an account.
+
+Syntax:
+
+  $pubapi->api_accountsummary_user( $user );
+
+=head2 C<api_accountsummary_domain()>
+
+Get the summary of an account by specifying the domain.
+
+Syntax:
+
+  $pubapi->api_accountsummary_domain( $domain );
+
+=head2 C<api_loadavg()>
+
+Get the loadavg on the system.
+
+Syntax:
+
+  $pubapi->api_loadavg(  );
+
+=head2 C<api_restartservice()>
+
+Restart a service.
+
+Syntax:
+
+  $pubapi->api_restartservice( $service );
+
+=head2 C<api_setsiteip_user()>
+
+Set the IP for a specific user.
+
+Syntax:
+
+  $pubapi->api_setsiteip_user( $user, $ip );
+
+=head2 C<api_setsiteip_domain()>
+
+Set the IP for a specific domain.
+
+Syntax:
+
+  $pubapi->api_setsiteip_domain( $domain, $ip );
