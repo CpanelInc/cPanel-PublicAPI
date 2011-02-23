@@ -15,7 +15,7 @@ my $pubapi = PubApiTest->new(
     'usessl'    => 1,
     'user'      => 'someuser',
     'pass'      => 'somepass',
-    'error_log' => 'test_log'
+    'error_log' => '/dev/null',
 );
 
 # test WHM

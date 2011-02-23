@@ -15,6 +15,7 @@ my $user     = $getpwuid[0];
 # test default settings
 if ( !-e $homedir . '/.accesshash' ) {
     $ENV{'REMOTE_PASSWORD'} = 'b4r!' if !defined $ENV{'REMOTE_PASSWORD'};
+    $ENV{'SERVER_SOFTWARE'} = 'cpsrvd fakeout';
 }
 
 check_options();
@@ -23,7 +24,7 @@ check_options( 'timeout'   => 150 );
 check_options( 'usessl'    => 0 );
 check_options( 'ip'        => '4.2.2.2' );
 check_options( 'host'      => 'zomg.cpanel.net' );
-check_options( 'error_log' => 'error_log_test' );
+check_options( 'error_log' => '/dev/null' );
 check_options( 'user'      => 'bar' );
 check_options( 'pass'      => 'f00!3Df@' );
 my $accesshash = 'sdflkjl
@@ -31,7 +32,7 @@ sdafjkl
 sdlfkjh';
 check_options( 'accesshash' => $accesshash );
 
-my $pubapi = cPanel::PublicAPI->new( 'error_log' => 'error_log_test' );
+my $pubapi = cPanel::PublicAPI->new( 'error_log' => '/dev/null' );
 
 $pubapi->error('random string');
 is( $pubapi->{'error'}, 'random string', 'Error variable is stored correctly' );
