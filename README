@@ -1,16 +1,20 @@
 cPanel-PublicAPI
 
-The README is used to introduce the module and provide instructions on
-how to install the module, any machine dependencies it may have (for
-example C compilers and installed libraries) and any other information
-that should be provided before the module is installed.
+cPanel::PublicAPI is a simple interface for accessing cPanel & WHM's APIs.
+This module is developed with a "fall back" dependency design, which means that
+if one of several modules is not available, it will fallback on the next.
 
-A README file is required for CPAN modules since CPAN extracts the README
-file from a module distribution so that people browsing the archive
-can use it to get an idea of the module's uses. It is usually a good idea
-to provide version information here so that people can decide whether
-fixes for the module are worth downloading.
+The module that this will fall back on are (in this order):
 
+JSON::Syck
+JSON::XS
+JSON
+JSON::PP
+
+The required modules for operations are:
+
+Net::SSLeay
+URI::Escape
 
 INSTALLATION
 
