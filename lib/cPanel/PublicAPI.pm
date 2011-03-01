@@ -29,10 +29,12 @@ package cPanel::PublicAPI;
 our $VERSION = 1.0;
 
 use strict;
-use Socket       ();
-use Carp         ();
-use MIME::Base64 ();
+use Socket           ();
+use Carp             ();
+use MIME::Base64     ();
+use IO::Socket::INET ();
 
+my ( $whm_sock, $whm_sock_host, $loaded_ssl );
 our %CFG;
 
 my %PORT_DB = (
@@ -54,16 +56,22 @@ sub new {
     my ( $class, %OPTS ) = @_;
 
     my $self = {};
-    bless($self, $class);
+    bless( $self, $class );
 
-    $self->{'debug'}   ||= $OPTS{'debug'}   || 0;
-    $self->{'timeout'} ||= $OPTS{'timeout'} || 300;
+    $self->{'debug'}   = $OPTS{'debug'}   || 0;
+    $self->{'timeout'} = $OPTS{'timeout'} || 300;
 
     if ( exists $OPTS{'usessl'} ) {
         $self->{'usessl'} = $OPTS{'usessl'};
     }
     else {
         $self->{'usessl'} = 1;
+    }
+    if ( exists $OPTS{'keepalive'} ) {
+        $self->{'keepalive'} = int $OPTS{'keepalive'};
+    }
+    else {
+        $self->{'keepalive'} = 0;
     }
 
     if ( exists $OPTS{'ip'} ) {
@@ -88,11 +96,11 @@ sub new {
 
     if ( $OPTS{'user'} ) {
         $self->{'user'} = $OPTS{'user'};
-        $self->debug("Using user param from object creation\n") if $self->{'debug'};
+        $self->debug("Using user param from object creation") if $self->{'debug'};
     }
     else {
         $self->{'user'} = exists $INC{'cPanel/PwCache.pm'} ? ( cPanel::PwCache::getpwuid($>) )[0] : ( getpwuid($>) )[0];
-        $self->debug("Setting user based on current uid ($>)\n") if $self->{'debug'};
+        $self->debug("Setting user based on current uid ($>)") if $self->{'debug'};
     }
 
     if ( ( !exists( $OPTS{'pass'} ) || $OPTS{'pass'} eq '' ) && ( !exists $OPTS{'accesshash'} || $OPTS{'accesshash'} eq '' ) ) {
@@ -183,8 +191,8 @@ sub whm_api {
         my $parsed_data;
         eval { $parsed_data = $CFG{'serializer_can_deref'} ? $CFG{'api_serializer_obj'}->($data) : $CFG{'api_serializer_obj'}->($$data); };
         if ( !ref $parsed_data ) {
-            $self->error("There was an issue with parsing the following response from cPanel or WHM:\n$$data");
-            die;
+            $self->error("There was an issue with parsing the following response from cPanel or WHM: [data=[$$data]]");
+            die $self->{'error'};
         }
         if (
             ( exists $parsed_data->{'error'} && $parsed_data->{'error'} =~ /Unknown App Requested/ ) ||                              # xml-api v0 version
@@ -198,12 +206,15 @@ sub whm_api {
 }
 
 sub api_request {
-    my ( $self, $service, $uri, $method, $formdata ) = @_;
+    my ( $self, $service, $uri, $method, $formdata, $headers ) = @_;
 
     $self->{'error'} = 0;
 
-    $method ||= 'GET';
-    $self->debug("api_request: ( $self, $service, $uri, $method, $formdata )") if $self->{'debug'};
+    $formdata ||= '';
+    $method   ||= 'GET';
+    $headers  ||= '';
+
+    $self->debug("api_request: ( $self, $service, $uri, $method, $formdata, $headers )") if $self->{'debug'};
 
     $self->_init() if !exists $CFG{'init'};
 
@@ -217,6 +228,7 @@ sub api_request {
     }
     elsif ( exists $self->{'pass'} ) {
         $authstr = 'Basic ' . MIME::Base64::encode_base64( $self->{'user'} . ':' . $self->{'pass'} );
+        $authstr =~ s/[\r\n]//g;
     }
     else {
         die 'No user name or password set, cannot execute query.';
@@ -227,16 +239,18 @@ sub api_request {
     my $port;
 
     if ( $self->{'usessl'} ) {
-        eval { require Net::SSLeay; };
-        if ($@) {
-            die "Failed to load Net::SSLeay: $@.";
+        if ( !$loaded_ssl ) {
+            eval { require IO::Socket::SSL; };
+            if ($@) {
+                die "Failed to load IO::Socket::SSL: $@.";
+            }
+            Net::SSLeay::load_error_strings();
+            Net::SSLeay::OpenSSL_add_ssl_algorithms();
+            Net::SSLeay::ERR_load_crypto_strings();
+            Net::SSLeay::randomize();
+            IO::Socket::SSL->import('inet4');    # see case 16674
+            $loaded_ssl = 1;
         }
-        eval { local $SIG{'__DIE__'}; require cPanel::Rand; };
-        if ( !$@ ) {
-            $ENV{'RND_SEED'} = cPanel::Rand::getranddata(512);
-            $Net::SSLeay::random_device = undef;
-        }
-
         $port = $service =~ /^\d+$/ ? $service : $PORT_DB{$service}{'ssl'};
     }
     else {
@@ -246,120 +260,175 @@ sub api_request {
     $self->debug("Found port for service $service to be $port (usessl=$self->{'usessl'})") if $self->{'debug'};
 
     eval {
-        local $SIG{'ALRM'} = sub {
-            $self->error('Connection Timed Out');
-            die $self->{'error'};
-        };
-        local $SIG{'PIPE'} = sub {
-            $self->error('Connection is broken (broken pipe)');
-            die $self->{'error'};
-        };
         if ( !$self->{'user'} ) {
             $self->error("You must specify a user to login as.");
             die $self->{'error'};    #exit eval
         }
-        if ( !$self->{'ip'} && !$self->{'host'} ) {
+        my $remote_server = $self->{'ip'}   || $self->{'host'};
+        my $server_name   = $self->{'host'} || $self->{'ip'};
+        if ( !$remote_server ) {
             $self->error("You must set a host to connect to.");
             die $self->{'error'};    #exit eval
         }
-        my $host = $self->{'host'} || $self->{'ip'};
+        $server_name =~ s/\s*//g;
+        my $keepalive         = $self->{'keepalive'} ? 1 : 0;
+        my $connection_string = $remote_server . ':' . $port;
+        my $attempts          = 0;
+        my $hassigpipe;
+        my $finished_request = 0;
 
+        local $SIG{'ALRM'} = sub {
+            $self->error('Connection Timed Out');
+            die $self->{'error'};
+        };
+        local $SIG{'PIPE'} = sub { $hassigpipe = 1; };
         $orig_alarm = alarm($timeout);
-        if ( $self->{'usessl'} ) {
-            my ( $result, %headers );
-            if ( $method && $method eq 'POST' ) {
-                $self->debug("Net::SSLeay::post_https(  $host, $port, $uri, ... )") if $self->{'debug'};
-                ( $page, $result, %headers ) = Net::SSLeay::post_https(
-                    $host, $port, $uri,
-                    Net::SSLeay::make_headers(
-                        'Authorization' => $authstr,
-                        'Connection'    => 'close',
-                        'User-Agent'    => 'cPanel::PublicAPI (perl) ' . $VERSION
-                    ),
-                    ( ref $formdata ? $self->format_http_query($formdata) : $formdata )
-                );
-
-                #FIXME: trap errors
-            }
-            else {
-                $self->debug("Net::SSLeay::get_https( $host, $port, $uri, ... )") if $self->{'debug'};
-                ( $page, $result, %headers ) = Net::SSLeay::get_https(
-                    $host, $port,
-                    $uri . '?' . ( ref $formdata ? $self->format_http_query($formdata) : $formdata ),
-                    Net::SSLeay::make_headers(
-                        'Authorization' => $authstr,
-                        'Connection'    => 'close',
-                        'User-Agent'    => 'cPanel::PublicAPI (perl) ' . $VERSION
-                    ),
-                );
-
-                #FIXME: trap errors
-            }
-            if ( !defined($result) ) {
-                $self->error("Connection to $host:2087 failed: $!.");
-            }
-            if ( $result !~ /OK/ ) {
-                $self->error($result);
-            }
-        }
-        else {
-            my $proto = getprotobyname('tcp');
-            socket( my $whm_sock, &Socket::AF_INET, &Socket::SOCK_STREAM, $proto );
-            my $iaddr;
-            if ( exists $self->{'host'} ) {
-                $iaddr = gethostbyname( $self->{'host'} );
-            }
-            if ( !$iaddr && exists $self->{'ip'} ) {
-                $iaddr = Socket::inet_aton( $self->{'ip'} );
-            }
-            if ( !$iaddr ) {
-                $self->error("Unable to resolve $self->{'host'}");
-                die;    # exit eval
-            }
-            my $sin = Socket::sockaddr_in( $port, $iaddr );
-
-            connect( $whm_sock, $sin ) || do {
-                $self->error("Unable to connect to  $host:$port\n");
-                die;    # exit eval
-            };
-
-            if ( $method eq 'POST' ) {
-                if ( ref $formdata ) {
-                    $formdata = $self->format_http_query($formdata);
+        while ( ++$attempts < 3 ) {
+            $hassigpipe = 0;
+            if ( !ref $whm_sock || !$whm_sock_host || $whm_sock_host != $connection_string ) {
+                close($whm_sock) if ref $whm_sock;
+                $whm_sock =
+                  $self->{'usessl'}
+                  ? IO::Socket::SSL->new($connection_string)
+                  : IO::Socket::INET->new($connection_string);
+                if ( !$whm_sock ) {
+                    undef $whm_sock;
+                    $self->error("Could not connect to $connection_string: $!");
+                    die $self->{'error'};    #exit eval
                 }
-                send $whm_sock, "POST $uri HTTP/1.0\r\nConnection: close\r\n" . 'Content-Length: ' . length($formdata) . "\r\n" . "User-Agent: " . 'cPanel::PublicAPI (perl) ' . $VERSION . "\r\n" . "Authorization: $authstr\r\n\r\n" . $formdata, 0;
-                $self->debug( ( "POST $uri HTTP/1.0\r\nConnection: close\r\n" . 'Content-Length: ' . length($formdata) . "\r\n" . "User-Agent: " . 'cPanel::PublicAPI (perl) ' . $VERSION . "\r\n" . "Authorization: $authstr\r\n\r\n" . $formdata ) ) if $self->{'debug'};
+                else {
+                    $whm_sock_host = $connection_string;
+                }
+            }
+            my $connection_type = ( $keepalive ? 'Keep-Alive' : 'Close' );
+
+            $headers = $self->format_http_headers($headers) if ref $headers;
+            if ( $method eq 'POST' || $method eq 'PUT' ) {
+                $formdata = $self->format_http_query($formdata) if ref $formdata;
+                print {$whm_sock} "$method $uri HTTP/1.1\r\nHost: $server_name\r\nConnection: $connection_type\r\n" . 'Content-Length: ' . length($formdata) . "\r\n" . "User-Agent: " . 'cPanel::PublicAPI (perl) ' . $VERSION . "\r\n" . "Authorization: $authstr\r\n$headers\r\n" . $formdata;
+                $self->debug( ( "$method $uri HTTP/1.1\r\nHost: $server_name\r\nConnection: $connection_type\r\n" . 'Content-Length: ' . length($formdata) . "\r\n" . "User-Agent: " . 'cPanel::PublicAPI (perl) ' . $VERSION . "\r\n" . "Authorization: $authstr\r\n$headers\r\n" . $formdata ) ) if $self->{'debug'};
             }
             else {
-                send $whm_sock, "GET " . ( $uri . '?' . ( ref $formdata ? join( '&', map { $CFG{'uri_encoder_func'}->($_) . '=' . $CFG{'uri_encoder_func'}->( $formdata->{$_} ) } keys %{$formdata} ) : $formdata ) ) . " HTTP/1.0\r\n" . "Connection: close\r\n" . "User-Agent: " . 'cPanel::PublicAPI (perl) ' . $VERSION . "\r\n" . "Authorization: $authstr\r\n\r\n", 0;
+                print {$whm_sock} "$method "
+                  . ( $uri . '?' . ( ref $formdata ? join( '&', map { $CFG{'uri_encoder_func'}->($_) . '=' . $CFG{'uri_encoder_func'}->( $formdata->{$_} ) } keys %{$formdata} ) : $formdata ) )
+                  . " HTTP/1.1\r\nHost: $server_name\r\nConnection: $connection_type\r\n"
+                  . "User-Agent: "
+                  . 'cPanel::PublicAPI (perl) '
+                  . $VERSION . "\r\n"
+                  . "Authorization: $authstr\r\n$headers\r\n";
 
-                $self->debug( "GET " . ( $uri . '?' . ( ref $formdata ? join( '&', map { $CFG{'uri_encoder_func'}->($_) . '=' . $CFG{'uri_encoder_func'}->( $formdata->{$_} ) } keys %{$formdata} ) : $formdata ) ) . " HTTP/1.0\r\n" . "Connection: close\r\n" . "User-Agent: " . 'cPanel::PublicAPI (perl) ' . $VERSION . "\r\n" . "Authorization: $authstr\r\n\r\n" )
+                $self->debug( "$method " . ( $uri . '?' . ( ref $formdata ? join( '&', map { $CFG{'uri_encoder_func'}->($_) . '=' . $CFG{'uri_encoder_func'}->( $formdata->{$_} ) } keys %{$formdata} ) : $formdata ) ) . " HTTP/1.1\r\nHost: $server_name\r\nConnection: $connection_type\r\n" . "User-Agent: " . 'cPanel::PublicAPI (perl) ' . $VERSION . "\r\n" . "Authorization: $authstr\r\n$headers\r\n" )
                   if $self->{'debug'};
 
             }
 
+            if ($hassigpipe) { undef $whm_sock_host; next; }    # http spec says to reconnect
+
             my $inheaders  = 1;
             my $httpheader = readline($whm_sock);
-            if ( $httpheader !~ m/OK/ ) {
-                $self->error("Server Error from $host: ${httpheader}");
-                die;    # exit eval
-            }
+
+            $self->debug("HTTP LINE[$httpheader]") if $self->{'debug'};
+
+            if ( $hassigpipe || !$httpheader ) { undef $whm_sock_host; next; }    # http spec says to reconnect
+
+            my %HEADERS;
             {
                 local $/ = "\r\n\r\n";
-                readline($whm_sock);
-                local $/;
-                $page = readline($whm_sock);    # read until we close ths socket
+                %HEADERS = map { ( lc $_->[0], substr( $_->[1], 0, 8190 ) ) }     # lc the header and truncate the value to 8190 bytes
+                  map { [ ( split( /:\s*/, $_, 2 ) )[ 0, 1 ] ] }                  # split header into name, value - and place into an arrayref for the next map to alter
+                  split( /\r?\n/, readline($whm_sock) );                          # split each header
             }
-            close $whm_sock;
+            if ( $self->{'debug'} ) {
+                foreach my $header ( keys %HEADERS ) {
+                    $self->debug("HEADER[$header]=[$HEADERS{$header}]");
+                }
+            }
+            {
+                if ( exists $HEADERS{'transfer-encoding'} && $HEADERS{'transfer-encoding'} =~ /chunked/i ) {
+                    $self->debug("READ TYPE=chunked") if $self->{'debug'};
+                    local $/ = "\r\n";
+                    my ( $size_to_read, $read_size, $read_buffer, $bytes_read );
+                  CHUNKED_READ:
+                    while (1) {
+                        chomp( $read_size = readline($whm_sock) );
+                        $size_to_read = hex($read_size) + 2;
+
+                        #if ( $self->{'debug'} ) {
+                        #    $self->debug("CHUNKED read_size=$read_size")               ;
+                        #    $self->debug("REQUESTING_READ size_to_read=$size_to_read") ;
+                        #}
+                        while ($size_to_read) {
+                            if ( !defined($read_size) || !( $bytes_read = read( $whm_sock, $read_buffer, $size_to_read ) ) ) {
+
+                                #$self->debug("FINSIHED READING CHUNKED DATA [$bytes_read]") if $self->{'debug'};
+                                last CHUNKED_READ;
+                            }
+                            $size_to_read -= $bytes_read;
+
+                            #$self->debug("BYTES READ = [$bytes_read] (remaining in chunk $size_to_read)") if $self->{'debug'};
+                            $page .=
+                                $size_to_read == 0 ? substr( $read_buffer, 0, -2 )
+                              : $size_to_read == 1 ? substr( $read_buffer, 0, -1 )
+                              :                      $read_buffer;
+                        }
+                        last if hex($read_size) == 0;
+                    }
+                    $keepalive = 0 if exists $HEADERS{'connection'} && $HEADERS{'connection'} =~ /close/i;
+                }
+                elsif ( defined $HEADERS{'content-length'} ) {
+                    $self->debug("READ TYPE=content-length") if $self->{'debug'};
+                    my $bytes_to_read = int $HEADERS{'content-length'};
+                    my $bytes_read = read( $whm_sock, $page, $bytes_to_read ) if $bytes_to_read;
+                    if ( $bytes_to_read && $bytes_read < $bytes_to_read ) {
+                        $bytes_to_read -= $bytes_read;
+                        my $page_buffer;
+                        while ( $bytes_read = read( $whm_sock, $page_buffer, $bytes_to_read ) ) {
+                            $bytes_to_read -= $bytes_read;
+                            $page .= $page_buffer;
+                            last if !$bytes_to_read;
+                        }
+                    }
+                    $keepalive = 0 if exists $HEADERS{'connection'} && $HEADERS{'connection'} =~ /close/i;
+                }
+                else {
+                    $self->debug("READ TYPE=close") if $self->{'debug'};
+                    $keepalive = 0;
+                    local $/;
+                    $page = readline($whm_sock);    # read until we close ths socket
+                }
+            }
+
+            if ( $httpheader !~ m/^\S+\s+2/ ) {
+                $keepalive = 0;
+                $self->error("Server Error from $remote_server: ${httpheader}");
+            }
+
+            if ( !$keepalive ) {
+                close($whm_sock);
+                undef $whm_sock_host;
+            }
+
+            $finished_request = 1;
+            last;
         }
+
+        if ( !$finished_request && !$self->{'error'} ) {
+            $self->error("The request could not be completed after the maximum attempts");
+        }
+
     };
-    alarm($orig_alarm);                         # Reset with parent's alarm value
+    if ( $self->{'debug'} && $@ ) {
+        warn $@;
+    }
+
+    alarm($orig_alarm);    # Reset with parent's alarm value
 
     return ( $self->{'error'} ? 0 : 1, $self->{'error'}, \$page );
 }
 
 sub cpanel_api1_request {
     my ( $self, $service, $cfg, $formdata, $format ) = @_;
+
     my $query_format;
     if ( defined $format ) {
         $query_format = $format;
@@ -374,11 +443,11 @@ sub cpanel_api1_request {
         $formdata = { map { ( 'arg-' . $count++ ) => $_ } @{$formdata} };
     }
     foreach my $cfg_item ( keys %{$cfg} ) {
-        $formdata->{ 'cpanel_' .  $query_format . 'api_' . $cfg_item } = $cfg->{$cfg_item};
+        $formdata->{ 'cpanel_' . $query_format . 'api_' . $cfg_item } = $cfg->{$cfg_item};
     }
-    $formdata->{ 'cpanel_' .  $query_format . 'api_apiversion' } = 1;
+    $formdata->{ 'cpanel_' . $query_format . 'api_apiversion' } = 1;
 
-    my ( $status, $statusmsg, $data ) = $self->api_request( $service, '/' .  $query_format . '-api/cpanel', ( ( scalar keys %$formdata < 10 && _total_form_length( $formdata, 1024 ) < 1024 ) ? 'GET' : 'POST' ), $formdata );
+    my ( $status, $statusmsg, $data ) = $self->api_request( $service, '/' . $query_format . '-api/cpanel', ( ( scalar keys %$formdata < 10 && _total_form_length( $formdata, 1024 ) < 1024 ) ? 'GET' : 'POST' ), $formdata );
     if ( defined $format && ( $format eq 'json' || $format eq 'xml' ) ) {
         return $$data;
     }
@@ -387,7 +456,7 @@ sub cpanel_api1_request {
         eval { $parsed_data = $CFG{'serializer_can_deref'} ? $CFG{'api_serializer_obj'}->($data) : $CFG{'api_serializer_obj'}->($$data); };
         if ( !ref $parsed_data ) {
             $self->error("There was an issue with parsing the following response from cPanel or WHM:\n$$data");
-            die;
+            die $self->{'error'};
         }
         if ( exists $parsed_data->{'event'}->{'reason'} && $parsed_data->{'event'}->{'reason'} =~ /failed: Undefined subroutine/ ) {
             $self->error( "cPanel::PublicAPI::cpanel_api1_request was called with the invalid API1 call of: " . $parsed_data->{'module'} . '::' . $parsed_data->{'func'} );
@@ -423,7 +492,7 @@ sub cpanel_api2_request {
         eval { $parsed_data = $CFG{'serializer_can_deref'} ? $CFG{'api_serializer_obj'}->($data) : $CFG{'api_serializer_obj'}->($$data); };
         if ( !ref $parsed_data ) {
             $self->error("There was an issue with parsing the following response from cPanel or WHM:\n$$data");
-            die;
+            die $self->{'error'};
         }
         if ( exists $parsed_data->{'cpanelresult'}->{'error'} && $parsed_data->{'cpanelresult'}->{'error'} =~ /Could not find function/ ) {    # xml-api v1 version
             $self->error( "cPanel::PublicAPI::cpanel_api2_request was called with the invalid API2 call of: " . $parsed_data->{'cpanelresult'}->{'module'} . '::' . $parsed_data->{'cpanelresult'}->{'func'} );
@@ -489,12 +558,12 @@ sub _init {
         eval { require $module; };
 
         if ( !$@ ) {
-            $self->debug("loaded encoder: $module\n") if $self && ref $self && $self->{'debug'};
+            $self->debug("loaded encoder: $module") if $self && ref $self && $self->{'debug'};
             $CFG{'uri_encoder_func'} = $function;
             last;
         }
         else {
-            $self->debug("failed to load encoder: $module\n") if $self && ref $self && $self->{'debug'};
+            $self->debug("failed to load encoder: $module") if $self && ref $self && $self->{'debug'};
         }
     }
     if ($@) {
@@ -511,6 +580,15 @@ sub error {
 sub debug {
     my ( $self, $msg ) = @_;
     print { $self->{'error_fh'} } "debug: " . $msg . "\n";
+}
+
+sub format_http_headers {
+    my ( $self, $headers ) = @_;
+    if ( ref $headers ) {
+        return '' if !scalar keys %{$headers};
+        return join( "\r\n", map { $_ ? ( $_ . ': ' . $headers->{$_} ) : () } keys %{$headers} ) . "\r\n";
+    }
+    return $headers;
 }
 
 sub format_http_query {

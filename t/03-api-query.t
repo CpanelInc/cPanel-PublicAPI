@@ -23,7 +23,7 @@ if ( !-e $homedir . '/.accesshash' ) {
 # SSL tests
 my $pubapi = cPanel::PublicAPI->new();
 
-isa_ok($pubapi, 'cPanel::PublicAPI');
+isa_ok( $pubapi, 'cPanel::PublicAPI' );
 
 my $res = $pubapi->api_request( 'whostmgr', '/xml-api/loadavg', 'GET', {} );
 like( $$res, qr/<loadavg>\s*<one>\d+\.\d+<\/one>\s*<five>\d+\.\d+<\/five>\s*<fifteen>\d+\.\d+<\/fifteen>\s*<\/loadavg>*/, 'whm get no params' );
@@ -44,42 +44,45 @@ $res = $pubapi->api_request( 'whostmgr', '/xml-api/createacct', 'POST', 'usernam
 like( $$res, $createacct_regex, 'ssl whm post string params' );
 
 # Create account for cpanel & reseller testing
-my $password = generate_password();
 
-$res = $pubapi->api_request(
-    'whostmgr',
-    '/xml-api/createacct',
-    'POST',
-    {
-        'username' => 'papiunit',
-        'password' => $password,
-        'domain'   => 'cpanel-public-api-test.acct',
-    }
-);
 
-like( $$res, qr/Account Creation Ok/, 'Test account created' );
-
-# skip is not used here due to the other code contained within this block.
-if ( $$res =~ /Account Creation Ok/ ) {
-    my $cp_pubapi = cPanel::PublicAPI->new(
-        'user' => 'papiunit',
-        'pass' => $password,
+if ( !-e '/var/cpanel/users/papiunit' ) {
+    my $password = generate_password();
+    $res = $pubapi->api_request(
+        'whostmgr',
+        '/xml-api/createacct',
+        'POST',
+        {
+            'username' => 'papiunit',
+            'password' => $password,
+            'domain'   => 'cpanel-public-api-test.acct',
+        }
     );
-    isa_ok($cp_pubapi, 'cPanel::PublicAPI');
-    $res = $cp_pubapi->api_request( 'cpanel', '/xml-api/cpanel', 'GET', 'cpanel_xmlapi_module=StatsBar&cpanel_xmlapi_func=stat&display=diskusage' );
-    like( $$res, qr/<module>StatsBar<\/module>/, 'ssl cpanel get string params' );
 
-    $res = $cp_pubapi->api_request( 'cpanel', '/xml-api/cpanel', 'GET', { 'cpanel_xmlapi_module' => 'StatsBar', 'cpanel_xmlapi_func' => 'stat', 'display' => 'diskusage' } );
-    like( $$res, qr/<module>StatsBar<\/module>/, 'ssl cpanel post hash params' );
+    like( $$res, qr/Account Creation Ok/, 'Test account created' );
 
-    $res = $cp_pubapi->api_request( 'cpanel', '/xml-api/cpanel', 'POST', 'cpanel_xmlapi_module=StatsBar&cpanel_xmlapi_func=stat&display=diskusage' );
-    like( $$res, qr/<module>StatsBar<\/module>/, 'ssl cpanel get string params' );
+    # skip is not used here due to the other code contained within this block.
+    if ( $$res =~ /Account Creation Ok/ ) {
+        my $cp_pubapi = cPanel::PublicAPI->new(
+            'user' => 'papiunit',
+            'pass' => $password,
+        );
+        isa_ok( $cp_pubapi, 'cPanel::PublicAPI' );
+        $res = $cp_pubapi->api_request( 'cpanel', '/xml-api/cpanel', 'GET', 'cpanel_xmlapi_module=StatsBar&cpanel_xmlapi_func=stat&display=diskusage' );
+        like( $$res, qr/<module>StatsBar<\/module>/, 'ssl cpanel get string params' );
 
-    $res = $cp_pubapi->api_request( 'cpanel', '/xml-api/cpanel', 'POST', { 'cpanel_xmlapi_module' => 'StatsBar', 'cpanel_xmlapi_func' => 'stat', 'display' => 'diskusage' } );
-    like( $$res, qr/<module>StatsBar<\/module>/, 'ssl cpanel post hash params' );
+        $res = $cp_pubapi->api_request( 'cpanel', '/xml-api/cpanel', 'GET', { 'cpanel_xmlapi_module' => 'StatsBar', 'cpanel_xmlapi_func' => 'stat', 'display' => 'diskusage' } );
+        like( $$res, qr/<module>StatsBar<\/module>/, 'ssl cpanel post hash params' );
 
-    $res = $pubapi->api_request( 'whostmgr', '/xml-api/removeacct', 'GET', { 'user' => 'papiunit' } );
-    like( $$res, qr/papiunit account removed/, 'Test Account Removed' );
+        $res = $cp_pubapi->api_request( 'cpanel', '/xml-api/cpanel', 'POST', 'cpanel_xmlapi_module=StatsBar&cpanel_xmlapi_func=stat&display=diskusage' );
+        like( $$res, qr/<module>StatsBar<\/module>/, 'ssl cpanel get string params' );
+
+        $res = $cp_pubapi->api_request( 'cpanel', '/xml-api/cpanel', 'POST', { 'cpanel_xmlapi_module' => 'StatsBar', 'cpanel_xmlapi_func' => 'stat', 'display' => 'diskusage' } );
+        like( $$res, qr/<module>StatsBar<\/module>/, 'ssl cpanel post hash params' );
+
+        $res = $pubapi->api_request( 'whostmgr', '/xml-api/removeacct', 'GET', { 'user' => 'papiunit' } );
+        like( $$res, qr/papiunit account removed/, 'Test Account Removed' );
+    }
 }
 
 my $cp_conf = load_cpanel_config();
@@ -91,10 +94,10 @@ if ( !$cp_conf->{'requiressl'} && !$cp_conf->{'alwaysredirecttossl'} ) {
 
 SKIP: {
     skip 'nonssl querying is not supported on this server', 5, unless $nonssl_tests;
-    
+
     my $unsecure = cPanel::PublicAPI->new( 'usessl' => 0 ) if $nonssl_tests;
-    isa_ok($unsecure, 'cPanel::PublicAPI');
-    
+    isa_ok( $unsecure, 'cPanel::PublicAPI' );
+
     $res = $unsecure->api_request( 'whostmgr', '/xml-api/loadavg', 'GET' ) if $nonssl_tests;
     like( $$res, qr/<loadavg>\s*<one>\d+\.\d+<\/one>\s*<five>\d+\.\d+<\/five>\s*<fifteen>\d+\.\d+<\/fifteen>\s*<\/loadavg>*/, 'nossl whm get no params' );
 
@@ -109,7 +112,7 @@ SKIP: {
 
     $res = $unsecure->api_request( 'whostmgr', '/xml-api/createacct', 'POST', 'username=test&domain=test.com' );
     like( $$res, $createacct_regex, 'nossl whm post string params' ) if $nonssl_tests;
-    
+
 }
 
 done_testing();
@@ -126,8 +129,8 @@ sub generate_password {
 
 sub load_cpanel_config {
     my %cpanel_config;
-    open (my $config_fh, '<', '/var/cpanel/cpanel.config' ) || BAIL_OUT('Could not load /var/cpanel/cpanel.config');
-    foreach my $line ( readline( $config_fh) ) {
+    open( my $config_fh, '<', '/var/cpanel/cpanel.config' ) || BAIL_OUT('Could not load /var/cpanel/cpanel.config');
+    foreach my $line ( readline($config_fh) ) {
         next if $line !~ /=/;
         chomp $line;
         my ( $key, $value ) = split( /=/, $line, 2 );

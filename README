@@ -13,7 +13,8 @@ JSON::PP
 
 The required modules for operations are:
 
-Net::SSLeay
+IO::Socket
+IO::Socket::SSL
 URI::Escape
 
 INSTALLATION

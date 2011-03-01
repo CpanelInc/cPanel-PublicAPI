@@ -64,6 +64,9 @@ $pubapi->accesshash('onetwothreefour');
 is( $pubapi->{'accesshash'}, 'onetwothreefour', 'accesshash accessor' );
 ok( !exists $pubapi->{'pass'}, 'accesshash accessor deletes pass scalar' );
 
+my $header_string = $pubapi->format_http_headers( { 'Authorization' => 'Basic cm9vdDpsMGx1cnNtNHJ0IQ==' } );
+is($header_string, "Authorization: Basic cm9vdDpsMGx1cnNtNHJ0IQ==\r\n", 'format_http_headers is ok');
+
 can_ok( $pubapi, 'new', 'set_debug', 'user', 'pass', 'accesshash', 'whm_api', 'api_request', 'cpanel_api1_request', 'cpanel_api2_request', '_total_form_length', '_init_serializer', '_init', 'error', 'debug', 'format_http_query' );
 
 done_testing();

@@ -246,17 +246,19 @@ There are some situations where you will need to query cPanel and WHM URLs direc
 
 The function used for querying URLs directly is api_request().  It will always return a string rather than converting the response into a hash reference.  It uses the following syntax:
 
-  $cp->api_request( $service, $uri, $method, \%formdata )
+  $cp->api_request( $service, $uri, $method, \%formdata, $headers)
 
 =over
 
-=item * $service - The service that you wish to query.  This can be 'cpanel' 'whostmgr', or 'webmail'.
+=item * $service - The service that you wish to query.  This can be 'cpanel' 'whostmgr', or 'webmail', when passed an numerical value, PublicAPI will query that port directly.
 
 =item * $uri - The URL you wish to query, e.g. '/xml-api/cpanel'
 
 =item * $method - 'GET' or 'POST'
 
 =item * $formdata - The data you wish to pass to the URL
+
+=item * $headers - Any additional headers are to be passed with the request.  These can be either a flat string or as a hashref like {'headertitle' => 'headerdata'}
 
 =back
 
@@ -310,8 +312,54 @@ would return:
 
 =over
 
+=item C<format_http_headers()>
+
+=back
+
+Allows you to construct headers for an http query from a hash.  For Example:
+
+  $pubapi->format_http_headers( { 'Authorization' => 'Basic cm9vdDpsMGx1cnNtNHJ0IQ=='} );
+
+would return:
+
+  'Authorization: Basic cm9vdDpsMGx1cnNtNHJ0IQ==\r\n'
+
+=over
+
 =item C<$pubapi->{'error'}>
 
 =back
 
 Errors encountered within the class are stored here before being written out to the error_fh filehandle.  This can be used for checking the existance of query errors.
+
+=head1 Bugs
+
+see http://rt.cpan.org to report and view bugs
+
+=head1 License
+
+Copyright (c) 2011, cPanel, Inc.
+All rights reserved.
+http://cpanel.net
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+     * Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+     * Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in the
+       documentation and/or other materials provided with the distribution.
+     * Neither the name of the  nor the
+       names of its contributors may be used to endorse or promote products
+       derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL  BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
