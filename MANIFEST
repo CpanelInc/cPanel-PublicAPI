@@ -25,7 +25,6 @@ t/00-load.t
 t/01-api-format.t
 t/02-construct.t
 t/03-api-query.t
-t/boilerplate.t
 t/lib/PubApiTest.pm
 t/manifest.t
 t/pod-coverage.t

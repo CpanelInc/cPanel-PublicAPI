@@ -8,7 +8,7 @@ WriteMakefile(
     VERSION_FROM        => 'lib/cPanel/PublicAPI.pm',
     ABSTRACT_FROM       => 'lib/cPanel/PublicAPI.pod',
     ($ExtUtils::MakeMaker::VERSION >= 6.3002
-      ? ('LICENSE'=> 'perl')
+      ? ('LICENSE'=> 'Modified BSD')
       : ()),
     PL_FILES            => {},
     PREREQ_PM => {

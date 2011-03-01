@@ -5,7 +5,6 @@ use warnings;
 
 use Test::More;                      # last test to print
 
-use lib 'lib';
 use lib 't/lib';
 
 use PubApiTest ();

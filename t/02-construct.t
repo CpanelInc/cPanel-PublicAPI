@@ -5,7 +5,6 @@ use warnings;
 
 use Test::More;
 
-use lib 'lib';
 use cPanel::PublicAPI ();
 
 my @getpwuid = getpwuid($>);
