@@ -4,7 +4,7 @@ use ExtUtils::MakeMaker;
 
 WriteMakefile(
     NAME                => 'cPanel::PublicAPI',
-    AUTHOR              => q{Matt Dees <matt@cpanel.net>},
+    AUTHOR              => q{cPanel, Inc. <integration@cpanel.net>},
     VERSION_FROM        => 'lib/cPanel/PublicAPI.pm',
     ABSTRACT_FROM       => 'lib/cPanel/PublicAPI.pod',
     ($ExtUtils::MakeMaker::VERSION >= 6.3002
