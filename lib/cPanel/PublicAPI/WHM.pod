@@ -13,7 +13,7 @@ This should never be used unless there is a very good reason to use it (such as 
 
 =head2 C<simple_get_whmreq()>
 
-This function makes a HTTP GET query to WHM, an equivlant function within L<cPanel::PublicAPI> is C<api_request()>.
+This function makes a HTTP GET query to WHM, an equivalent function within L<cPanel::PublicAPI> is C<api_request()>.
 This function uses two arrays to specify arguments to be passed to a specific URI.
 This means that you would need to ensure that they both have the key/pair values in the same place in each array, f.ex:
 
@@ -44,7 +44,7 @@ This will return a scalar reference of the data returned by cpsrvd.
 
 =head2 C<simple_post_whmreq()>
 
-This function makes a HTTP POST query to WHM, an equivlant function within L<cPanel::PublicAPI> is C<api_request()>.
+This function makes a HTTP POST query to WHM, an equivalent function within L<cPanel::PublicAPI> is C<api_request()>.
 This function uses two arrays to specify arguments to be passed to a specific URI.
 This means that you would need to ensure that they both have the key/pair values in the same place in each array, f.ex:
 
