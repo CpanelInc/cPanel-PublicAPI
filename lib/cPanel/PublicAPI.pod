@@ -104,7 +104,7 @@ options for new() are specified as a hash reference, the following parameters ar
 
 =item * timeout - The length of time (in seconds) before an http request should time out.  Default to 300.
 
-=item * ip - The IP to be queried.  defaults to 127.0.0.1, if host is defined it will take precedence over the ‘ip’ parameter.
+=item * ip - The IP to be queried.  defaults to 127.0.0.1, if host is defined it will take precedence over the 'ip' parameter.
 
 =item * host - The hostname to be queried.  This will take precedence over the 'ip' parameter.
 
@@ -123,14 +123,14 @@ There are two sets of credentials that can be used to authenticate to WHM.
 First we have the basic user/password combinations:
 
   use Cpanel::PublicAPI;
-  my $pubapi = Cpanel::PublicAPI->new( ‘user’ => ‘foo’, ‘password’ => ‘bar’ );
+  my $pubapi = Cpanel::PublicAPI->new( 'user' => 'foo', 'password' => 'bar' );
 
 The other type of authentication is accesshash authentication.  To configure accesshashes visit “Setup remote access key”
 in WHM which will generate an accesshash for your server if one does not already exist. It will store the generated accesshash
 in /root/.accesshash.  To use an accesshash with this module you can do something like the following:
 
   use Cpanel::PublicAPI;
-  my $pubapi = Cpanel::PublicAPI->new( ‘user’ => ‘foo’, ‘accesshash’ => $string_containing_access_hash );
+  my $pubapi = Cpanel::PublicAPI->new( 'user' => 'foo', 'accesshash' => $string_containing_access_hash );
 
 It should be noted that the access hash can contain newlines in it,  Newlines will be stripped by the object when
 it attempts to perform a query.
@@ -326,7 +326,7 @@ would return:
 
 =over
 
-=item C<$pubapi->{'error'}>
+=item C<$pubapi-\>{'error'}>
 
 =back
 
