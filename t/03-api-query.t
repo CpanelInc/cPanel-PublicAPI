@@ -28,7 +28,7 @@ my $res = $pubapi->api_request( 'whostmgr', '/xml-api/loadavg', 'GET', {} );
 like( $$res, qr/<loadavg>\s*<one>\d+\.\d+<\/one>\s*<five>\d+\.\d+<\/five>\s*<fifteen>\d+\.\d+<\/fifteen>\s*<\/loadavg>*/, 'whm get no params' );
 
 # Create the test regex for reuse
-my $createacct_regex = qr/<statusmsg>Sorry, that username is reserved\.<\/statusmsg>/;
+my $createacct_regex = qr/<statusmsg>.*is a reserved username.*<\/statusmsg>/;
 
 $res = $pubapi->api_request( 'whostmgr', '/xml-api/createacct', 'GET', { 'username' => 'test', 'domain' => 'test.com' } );
 like( $$res, $createacct_regex, 'ssl whm get hash params' );
