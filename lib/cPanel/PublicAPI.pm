@@ -29,7 +29,7 @@ package cPanel::PublicAPI;
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-our $VERSION = 1.2;
+our $VERSION = 1.3;
 
 use strict;
 use Socket           ();
@@ -606,7 +606,7 @@ sub format_http_headers {
 sub format_http_query {
     my ( $self, $formdata ) = @_;
     if ( ref $formdata ) {
-        return join( '&', map { $CFG{'uri_encoder_func'}->($_) . '=' . $CFG{'uri_encoder_func'}->( $formdata->{$_} ) } keys %{$formdata} );
+        return join( '&', map { $CFG{'uri_encoder_func'}->($_) . '=' . $CFG{'uri_encoder_func'}->( $formdata->{$_} ) } sort keys %{$formdata} );
     }
     return $formdata;
 }
