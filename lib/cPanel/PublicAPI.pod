@@ -122,15 +122,15 @@ There are two sets of credentials that can be used to authenticate to WHM.
 
 First we have the basic user/password combinations:
 
-  use Cpanel::PublicAPI;
-  my $pubapi = Cpanel::PublicAPI->new( 'user' => 'foo', 'password' => 'bar' );
+  use cPanel::PublicAPI;
+  my $pubapi = cPanel::PublicAPI->new( 'user' => 'foo', 'password' => 'bar' );
 
 The other type of authentication is accesshash authentication.  To configure accesshashes visit “Setup remote access key”
 in WHM which will generate an accesshash for your server if one does not already exist. It will store the generated accesshash
 in /root/.accesshash.  To use an accesshash with this module you can do something like the following:
 
-  use Cpanel::PublicAPI;
-  my $pubapi = Cpanel::PublicAPI->new( 'user' => 'foo', 'accesshash' => $string_containing_access_hash );
+  use cPanel::PublicAPI;
+  my $pubapi = cPanel::PublicAPI->new( 'user' => 'foo', 'accesshash' => $string_containing_access_hash );
 
 It should be noted that the access hash can contain newlines in it,  Newlines will be stripped by the object when
 it attempts to perform a query.
@@ -338,7 +338,7 @@ see http://rt.cpan.org to report and view bugs
 
 =head1 License
 
-Copyright (c) 2011, cPanel, Inc.
+Copyright (c) 2015, cPanel, Inc.
 All rights reserved.
 http://cpanel.net
 

@@ -12,7 +12,7 @@ see http://rt.cpan.org to report and view bugs
 
 =head1 License
 
-Copyright (c) 2011, cPanel, Inc.
+Copyright (c) 2015, cPanel, Inc.
 All rights reserved.
 http://cpanel.net
 

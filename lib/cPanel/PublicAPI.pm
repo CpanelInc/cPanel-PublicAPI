@@ -1,32 +1,35 @@
 package cPanel::PublicAPI;
 
-# Copyright (c) 2011, cPanel, Inc.
+# Copyright (c) 2015, cPanel, Inc.
 # All rights reserved.
 # http://cpanel.net
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-#    * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of cPanel, Inc. nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and/or other materials provided with the distribution.
+#
+# 3. Neither the name of the owner nor the names of its contributors may be
+# used to endorse or promote products derived from this software without
+# specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL  BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-our $VERSION = 1.001;
+our $VERSION = 1.1;
 
 use strict;
 use Socket           ();
@@ -67,6 +70,12 @@ sub new {
     else {
         $self->{'usessl'} = 1;
     }
+    if ( exists $OPTS{'ssl_verify_mode'} ) {
+        $self->{'ssl_verify_mode'} = $OPTS{'ssl_verify_mode'};
+    }
+    else {
+        $self->{'ssl_verify_mode'} = 1;
+    }
     if ( exists $OPTS{'keepalive'} ) {
         $self->{'keepalive'} = int $OPTS{'keepalive'};
     }
@@ -99,12 +108,12 @@ sub new {
         $self->debug("Using user param from object creation") if $self->{'debug'};
     }
     else {
-        $self->{'user'} = exists $INC{'cPanel/PwCache.pm'} ? ( cPanel::PwCache::getpwuid($>) )[0] : ( getpwuid($>) )[0];
+        $self->{'user'} = exists $INC{'Cpanel/PwCache.pm'} ? ( Cpanel::PwCache::getpwuid($>) )[0] : ( getpwuid($>) )[0];
         $self->debug("Setting user based on current uid ($>)") if $self->{'debug'};
     }
 
     if ( ( !exists( $OPTS{'pass'} ) || $OPTS{'pass'} eq '' ) && ( !exists $OPTS{'accesshash'} || $OPTS{'accesshash'} eq '' ) ) {
-        my $homedir = exists $INC{'cPanel/PwCache.pm'} ? ( cPanel::PwCache::getpwuid($>) )[7] : ( getpwuid($>) )[7];
+        my $homedir = exists $INC{'Cpanel/PwCache.pm'} ? ( Cpanel::PwCache::getpwuid($>) )[7] : ( getpwuid($>) )[7];
         $self->debug("Attempting to detect correct authentication credentials") if $self->{'debug'};
 
         if ( -e $homedir . '/.accesshash' ) {
@@ -183,7 +192,9 @@ sub whm_api {
     my $uri = "/$query_format-api/$call";
 
     my ( $status, $statusmsg, $data ) = $self->api_request( 'whostmgr', $uri, 'POST', $formdata );
-
+    if ( $self->{'error'} ) {
+        die $self->{'error'};
+    }
     if ( defined $format && ( $format eq 'json' || $format eq 'xml' ) ) {
         return $$data;
     }
@@ -195,9 +206,9 @@ sub whm_api {
             die $self->{'error'};
         }
         if (
-            ( exists $parsed_data->{'error'} && $parsed_data->{'error'} =~ /Unknown App Requested/ ) ||                              # xml-api v0 version
+            ( exists $parsed_data->{'error'} && $parsed_data->{'error'} =~ /Unknown App Requested/ ) ||    # xml-api v0 version
             ( exists $parsed_data->{'metadata'}->{'reason'} && $parsed_data->{'metadata'}->{'reason'} =~ /Unknown app requested/ )
-          ) {                                                                                                                        # xml-api v1 version
+          ) {                                                                                              # xml-api v1 version
             $self->error("cPanel::PublicAPI::whm_api was called with the invalid API call of: $call.");
             return;
         }
@@ -251,6 +262,7 @@ sub api_request {
             IO::Socket::SSL->import('inet4');    # see case 16674
             $loaded_ssl = 1;
         }
+        IO::Socket::SSL->import('inet4');        # see case 16674
         $port = $service =~ /^\d+$/ ? $service : $PORT_DB{$service}{'ssl'};
     }
     else {
@@ -262,13 +274,13 @@ sub api_request {
     eval {
         if ( !$self->{'user'} ) {
             $self->error("You must specify a user to login as.");
-            die $self->{'error'};    #exit eval
+            die $self->{'error'};                #exit eval
         }
         my $remote_server = $self->{'ip'}   || $self->{'host'};
         my $server_name   = $self->{'host'} || $self->{'ip'};
         if ( !$remote_server ) {
-            $self->error("You must set a host to connect to.");
-            die $self->{'error'};    #exit eval
+            $self->error("You must set a host to connect to. (missing 'host' and 'ip' parameter)");
+            die $self->{'error'};                #exit eval
         }
         $server_name =~ s/\s*//g;
         my $keepalive         = $self->{'keepalive'} ? 1 : 0;
@@ -276,6 +288,7 @@ sub api_request {
         my $attempts          = 0;
         my $hassigpipe;
         my $finished_request = 0;
+        my $ssl_verify_mode  = $self->{'ssl_verify_mode'};
 
         local $SIG{'ALRM'} = sub {
             $self->error('Connection Timed Out');
@@ -283,13 +296,14 @@ sub api_request {
         };
         local $SIG{'PIPE'} = sub { $hassigpipe = 1; };
         $orig_alarm = alarm($timeout);
+        my @connection_args = ( PeerHost => $remote_server, PeerPort => $port, SSL_verify_mode => $ssl_verify_mode );
         while ( ++$attempts < 3 ) {
             $hassigpipe = 0;
-            if ( !ref $whm_sock || !$whm_sock_host || $whm_sock_host != $connection_string ) {
+            if ( !ref $whm_sock || !$whm_sock_host || $whm_sock_host ne $connection_string ) {
                 close($whm_sock) if ref $whm_sock;
                 $whm_sock =
                   $self->{'usessl'}
-                  ? IO::Socket::SSL->new($connection_string)
+                  ? IO::Socket::SSL->new(@connection_args)
                   : IO::Socket::INET->new($connection_string);
                 if ( !$whm_sock ) {
                     undef $whm_sock;
@@ -324,16 +338,17 @@ sub api_request {
 
             if ($hassigpipe) { undef $whm_sock_host; next; }    # http spec says to reconnect
 
-            my $inheaders  = 1;
-            my $httpheader = readline($whm_sock);
+            my $inheaders   = 1;
+            my $httpheader  = readline($whm_sock);
+            my $http_status = $httpheader;
 
-            $self->debug("HTTP LINE[$httpheader]") if $self->{'debug'};
+            $self->debug("HTTP STATUS[$http_status]") if $self->{'debug'};
 
             if ( $hassigpipe || !$httpheader ) { undef $whm_sock_host; next; }    # http spec says to reconnect
 
             my %HEADERS;
             {
-                local $/ = "\r\n\r\n";
+                local $/ = ( $httpheader =~ tr/\r// ) ? "\r\n\r\n" : "\n\n";
                 %HEADERS = map { ( lc $_->[0], substr( $_->[1], 0, 8190 ) ) }     # lc the header and truncate the value to 8190 bytes
                   map { [ ( split( /:\s*/, $_, 2 ) )[ 0, 1 ] ] }                  # split header into name, value - and place into an arrayref for the next map to alter
                   split( /\r?\n/, readline($whm_sock) );                          # split each header
@@ -378,16 +393,13 @@ sub api_request {
                 elsif ( defined $HEADERS{'content-length'} ) {
                     $self->debug("READ TYPE=content-length") if $self->{'debug'};
                     my $bytes_to_read = int $HEADERS{'content-length'};
-                    my $bytes_read = read( $whm_sock, $page, $bytes_to_read ) if $bytes_to_read;
-                    if ( $bytes_to_read && $bytes_read < $bytes_to_read ) {
-                        $bytes_to_read -= $bytes_read;
-                        my $page_buffer;
-                        while ( $bytes_read = read( $whm_sock, $page_buffer, $bytes_to_read ) ) {
-                            $bytes_to_read -= $bytes_read;
-                            $page .= $page_buffer;
-                            last if !$bytes_to_read;
+                    my $bytes_read = $bytes_to_read ? read( $whm_sock, $page, $bytes_to_read ) : 0;
+                    if ( ( $bytes_to_read -= $bytes_read ) > 0 ) {
+                        while ( $bytes_read = read( $whm_sock, $page, $bytes_to_read, length $page ) ) {
+                            last if !$bytes_read || !( $bytes_to_read -= $bytes_read );
                         }
                     }
+                    $self->debug("READ TYPE=content-length: Failed to read response from server.  The connection was dropped with $bytes_to_read bytes left: $!\n") if $self->{'debug'} && $bytes_to_read;
                     $keepalive = 0 if exists $HEADERS{'connection'} && $HEADERS{'connection'} =~ /close/i;
                 }
                 else {
@@ -398,9 +410,9 @@ sub api_request {
                 }
             }
 
-            if ( $httpheader !~ m/^\S+\s+2/ ) {
+            if ( $http_status !~ m/^HTTP\/1\.(0|1) 2/ ) {
                 $keepalive = 0;
-                $self->error("Server Error from $remote_server: ${httpheader}");
+                $self->error("Server Error from $remote_server: $http_status");
             }
 
             if ( !$keepalive ) {
@@ -550,7 +562,7 @@ sub _init {
 
     # moved this over to a pattern to allow easy change of deps
     foreach my $encoder (
-        [ 'cPanel/CPAN/URI/Escape.pm', \&cPanel::CPAN::URI::Escape::uri_escape ],
+        [ 'Cpanel/CPAN/URI/Escape.pm', \&Cpanel::CPAN::URI::Escape::uri_escape ],
         [ 'URI/Escape.pm',             \&URI::Escape::uri_escape ],
       ) {
         my $module   = $encoder->[0];
