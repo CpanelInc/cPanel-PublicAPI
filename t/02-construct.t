@@ -19,13 +19,14 @@ if ( !-e $homedir . '/.accesshash' ) {
 
 check_options();
 check_options( 'debug' => 1, 'error_log' => '/dev/null' );
-check_options( 'timeout'   => 150 );
-check_options( 'usessl'    => 0 );
-check_options( 'ip'        => '4.2.2.2' );
-check_options( 'host'      => 'zomg.cpanel.net' );
-check_options( 'error_log' => '/dev/null' );
-check_options( 'user'      => 'bar' );
-check_options( 'pass'      => 'f00!3Df@' );
+check_options( 'timeout'         => 150 );
+check_options( 'usessl'          => 0 );
+check_options( 'ssl_verify_mode' => 0 );
+check_options( 'ip'              => '4.2.2.2' );
+check_options( 'host'            => 'zomg.cpanel.net' );
+check_options( 'error_log'       => '/dev/null' );
+check_options( 'user'            => 'bar' );
+check_options( 'pass'            => 'f00!3Df@' );
 my $accesshash = 'sdflkjl
 sdafjkl
 sdlfkjh';
@@ -64,7 +65,7 @@ is( $pubapi->{'accesshash'}, 'onetwothreefour', 'accesshash accessor' );
 ok( !exists $pubapi->{'pass'}, 'accesshash accessor deletes pass scalar' );
 
 my $header_string = $pubapi->format_http_headers( { 'Authorization' => 'Basic cm9vdDpsMGx1cnNtNHJ0IQ==' } );
-is($header_string, "Authorization: Basic cm9vdDpsMGx1cnNtNHJ0IQ==\r\n", 'format_http_headers is ok');
+is( $header_string, "Authorization: Basic cm9vdDpsMGx1cnNtNHJ0IQ==\r\n", 'format_http_headers is ok' );
 
 can_ok( $pubapi, 'new', 'set_debug', 'user', 'pass', 'accesshash', 'whm_api', 'api_request', 'cpanel_api1_request', 'cpanel_api2_request', '_total_form_length', '_init_serializer', '_init', 'error', 'debug', 'format_http_query' );
 
@@ -96,6 +97,13 @@ sub check_options {
     }
     else {
         is( $pubapi->{'usessl'}, 1, 'usessl default' );
+    }
+
+    if ( defined $OPTS{'ssl_verify_mode'} ) {
+        is( $pubapi->{'ssl_verify_mode'}, $OPTS{'ssl_verify_mode'}, 'ssl_verify_mode constructor option' );
+    }
+    else {
+        is( $pubapi->{'ssl_verify_mode'}, 1, 'ssl_verify_mode default' );
     }
 
     if ( defined $OPTS{'ip'} ) {

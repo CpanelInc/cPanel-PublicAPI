@@ -20,7 +20,7 @@ if ( !-e $homedir . '/.accesshash' ) {
 }
 
 # SSL tests
-my $pubapi = cPanel::PublicAPI->new();
+my $pubapi = cPanel::PublicAPI->new( 'ssl_verify_mode' => 0 );
 
 isa_ok( $pubapi, 'cPanel::PublicAPI' );
 
@@ -44,7 +44,6 @@ like( $$res, $createacct_regex, 'ssl whm post string params' );
 
 # Create account for cpanel & reseller testing
 
-
 if ( !-e '/var/cpanel/users/papiunit' ) {
     my $password = generate_password();
     $res = $pubapi->api_request(
@@ -63,8 +62,9 @@ if ( !-e '/var/cpanel/users/papiunit' ) {
     # skip is not used here due to the other code contained within this block.
     if ( $$res =~ /Account Creation Ok/ ) {
         my $cp_pubapi = cPanel::PublicAPI->new(
-            'user' => 'papiunit',
-            'pass' => $password,
+            'user'            => 'papiunit',
+            'pass'            => $password,
+            'ssl_verify_mode' => 0,
         );
         isa_ok( $cp_pubapi, 'cPanel::PublicAPI' );
         $res = $cp_pubapi->api_request( 'cpanel', '/xml-api/cpanel', 'GET', 'cpanel_xmlapi_module=StatsBar&cpanel_xmlapi_func=stat&display=diskusage' );

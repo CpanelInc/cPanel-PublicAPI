@@ -70,6 +70,12 @@ sub new {
     else {
         $self->{'usessl'} = 1;
     }
+    if ( exists $OPTS{'ssl_verify_mode'} ) {
+        $self->{'ssl_verify_mode'} = $OPTS{'ssl_verify_mode'};
+    }
+    else {
+        $self->{'ssl_verify_mode'} = 1;
+    }
     if ( exists $OPTS{'keepalive'} ) {
         $self->{'keepalive'} = int $OPTS{'keepalive'};
     }
@@ -282,6 +288,7 @@ sub api_request {
         my $attempts          = 0;
         my $hassigpipe;
         my $finished_request = 0;
+        my $ssl_verify_mode  = $self->{'ssl_verify_mode'};
 
         local $SIG{'ALRM'} = sub {
             $self->error('Connection Timed Out');
@@ -289,7 +296,7 @@ sub api_request {
         };
         local $SIG{'PIPE'} = sub { $hassigpipe = 1; };
         $orig_alarm = alarm($timeout);
-        my @connection_args = ( PeerHost => $remote_server, PeerPort => $port, SSL_verify_mode => 0 );
+        my @connection_args = ( PeerHost => $remote_server, PeerPort => $port, SSL_verify_mode => $ssl_verify_mode );
         while ( ++$attempts < 3 ) {
             $hassigpipe = 0;
             if ( !ref $whm_sock || !$whm_sock_host || $whm_sock_host ne $connection_string ) {
@@ -528,8 +535,8 @@ sub _init_serializer {
         [ 'JSON::XS',   'json', \&JSON::XS::decode_json, 0 ],
         [ 'JSON::PP',   'json', \&JSON::PP::decode_json, 0 ],
       ) {
-        my $serializer_module        = $serializer->[0];
-        my $serializer_key           = $serializer->[1];
+        my $serializer_module = $serializer->[0];
+        my $serializer_key    = $serializer->[1];
         $CFG{'api_serializer_obj'}   = $serializer->[2];
         $CFG{'serializer_can_deref'} = $serializer->[3];
         eval " require $serializer_module; ";
