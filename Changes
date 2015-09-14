@@ -1,6 +1,6 @@
 Revision history for cPanel-PublicAPI
 
-1.1	8/26/2015
+1.2	8/26/2015
 	Updated from main code-base, changes include:
 		Fixed non-numeric comparison errors.
 		Cleaned up uninitialized variable use.
