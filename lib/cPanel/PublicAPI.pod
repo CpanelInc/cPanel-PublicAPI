@@ -110,6 +110,8 @@ options for new() are specified as a hash reference, the following parameters ar
 
 =item * usessl - 1 or 0, Indicates whether communication should be performed over SSL or not (default to 1).
 
+=item * ssl_verify_mode - 1 or 0, Indicates whether to verify SSL certificates or not.  (default to 1).
+
 =item * error_log - Path to where you want debug and error logging information to be written to.  If this is not defined or the module is unable to open the path in question, it will default to STDERR.
 
 =item * debug - Enables debug logging, which will place considerably more information into the error_log.
