@@ -29,15 +29,33 @@ my $res = $pubapi->whm_api('loadavg');
 is( ref $res, 'HASH', 'Returned format ok for ' . $PubApiTest::test_config->{'call'} );
 
 $PubApiTest::test_config->{'test_formdata'} = 'hash';
-$PubApiTest::test_config->{'formdata'}      = { 'key' => 'value' };
+$PubApiTest::test_config->{'formdata'}      = { 'key' => 'value', 'api.version' => 1 };
 $PubApiTest::test_config->{'call'}          = 'whm_api-refform';
+$res = $pubapi->whm_api( 'loadavg', { 'key' => 'value' } );
+is( ref $res, 'HASH', 'Returned format ok for ' . $PubApiTest::test_config->{'call'} );
+
+$PubApiTest::test_config->{'test_formdata'} = 'hash';
+$PubApiTest::test_config->{'formdata'}      = { 'key' => 'value', 'api.version' => 0 };
+$PubApiTest::test_config->{'call'}          = 'whm_api-refapi0';
+$res = $pubapi->whm_api( 'loadavg', $PubApiTest::test_config->{'formdata'} );
+is( ref $res, 'HASH', 'Returned format ok for ' . $PubApiTest::test_config->{'call'} );
+
+$PubApiTest::test_config->{'test_formdata'} = 'hash';
+$PubApiTest::test_config->{'formdata'}      = { 'key' => 'value', 'api.version' => 1 };
+$PubApiTest::test_config->{'call'}          = 'whm_api-refapi1';
 $res = $pubapi->whm_api( 'loadavg', $PubApiTest::test_config->{'formdata'} );
 is( ref $res, 'HASH', 'Returned format ok for ' . $PubApiTest::test_config->{'call'} );
 
 $PubApiTest::test_config->{'test_formdata'} = 'string';
-$PubApiTest::test_config->{'formdata'}      = 'one&two';
+$PubApiTest::test_config->{'formdata'}      = 'api.version=1&one&two';
 $PubApiTest::test_config->{'call'}          = 'whm_api-stringform';
-$res = $pubapi->whm_api( 'loadavg', $PubApiTest::test_config->{'formdata'} );
+$res = $pubapi->whm_api( 'loadavg', 'one&two' );
+is( ref $res, 'HASH', 'Returned format ok for ' . $PubApiTest::test_config->{'call'} );
+
+$PubApiTest::test_config->{'test_formdata'} = 'string';
+$PubApiTest::test_config->{'formdata'}      = 'api.version=0&one&two';
+$PubApiTest::test_config->{'call'}          = 'whm_api-stringapi0';
+$res = $pubapi->whm_api( 'loadavg', 'api.version=0&one&two' );
 is( ref $res, 'HASH', 'Returned format ok for ' . $PubApiTest::test_config->{'call'} );
 
 delete $PubApiTest::test_config->{'formdata'};
