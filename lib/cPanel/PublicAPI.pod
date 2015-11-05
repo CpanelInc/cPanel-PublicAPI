@@ -178,6 +178,9 @@ The meaning of these parameters is:
 
 =back
 
+By default, WHM API v1 is used.  If, for legacy reasons, you need to use v0,
+please set the C<api.version> key to 0 in the formdata parameter.
+
 For more information on what calls are available and how they can be referenced, please see the xml-api documentation at L<http://docs.cpanel.net/twiki/bin/view/AllDocumentation/AutomationIntegration/XmlApi>.
 
 =head2 Querying cPanel's APIs

@@ -29,7 +29,7 @@ package cPanel::PublicAPI;
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-our $VERSION = 1.3;
+our $VERSION = 1.4;
 
 use strict;
 use Socket           ();
@@ -181,6 +181,15 @@ sub whm_api {
     if ( defined $format && $format ne 'xml' && $format ne 'json' && $format ne 'ref' ) {
         $self->error("cPanel::PublicAPI::whm_api_request() was called with an invalid data format, the only valid format are 'json', 'ref' or 'xml'");
     }
+
+    $formdata ||= {};
+    if ( ref $formdata ) {
+        $formdata = { 'api.version' => 1, %$formdata };
+    }
+    elsif ( $formdata !~ /(^|&)api\.version=/ ) {
+        $formdata = "api.version=1&$formdata";
+    }
+
     my $query_format;
     if ( defined $format ) {
         $query_format = $format;
