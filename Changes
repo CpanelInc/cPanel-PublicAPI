@@ -1,6 +1,6 @@
 Revision history for cPanel-PublicAPI
 
-1.4 2015-09-15
+2.0 2015-09-15
     Updated PublicAPI pod file to include description
     of new ssl_verify_mode option.
     Default WHM API to v1.
