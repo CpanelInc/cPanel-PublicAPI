@@ -135,7 +135,7 @@ sub check_options {
     }
     elsif ( defined $OPTS{'accesshash'} ) {
         my $accesshash = $OPTS{'accesshash'};
-        $accesshash =~ s/[\r\n]//;
+        $accesshash =~ s/[\r\n]//g;
         is( $pubapi->{'accesshash'}, $accesshash, 'accesshash constructor option' );
     }
     else {
