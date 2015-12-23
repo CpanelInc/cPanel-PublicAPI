@@ -67,7 +67,7 @@ cPanel::PublicAPI - A perl interface for interacting with cPanel
   );
   
   # perform an HTTP GET request against a URL
-  $cp->api_request('whostmgr', '/xml-api/laodavg', 'GET');
+  $cp->api_request('whostmgr', '/xml-api/loadavg', 'GET');
   
   # perform an HTTP GET request with parameters
   $cp->api_request('whostmgr', '/xml-api/createacct', 'GET', {'username' => 'someuser', domain => 'domain.com'} );
