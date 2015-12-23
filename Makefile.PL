@@ -18,6 +18,7 @@ WriteMakefile(
         'IO::Socket::INET' => 1.31,
         'IO::Socket::SSL' => 1.33,
         'HTTP::Tiny' => 0.042,
+        'HTTP::CookieJar' => 0,
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'cPanel-PublicAPI-*' },
