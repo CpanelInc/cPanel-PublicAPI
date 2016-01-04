@@ -67,11 +67,17 @@ if ( !-e '/var/cpanel/users/papiunit' ) {
             'ssl_verify_mode' => 0,
         );
         isa_ok( $cp_pubapi, 'cPanel::PublicAPI' );
+        is( $cp_pubapi->{'operating_mode'}, 'session', 'Session operating mode is set properly when user/pass is used' );
+        ok( !defined $cp_pubapi->{'cookie_jars'}->{'cpanel'},     'no cookies have been established for the cpanel service before the first query is made' );
+        ok( !defined $cp_pubapi->{'security_tokens'}->{'cpanel'}, 'no security_token has been set for the cpanel service before the first query is made' );
         $res = $cp_pubapi->api_request( 'cpanel', '/xml-api/cpanel', 'GET', 'cpanel_xmlapi_module=StatsBar&cpanel_xmlapi_func=stat&display=diskusage' );
         like( $$res, qr/<module>StatsBar<\/module>/, 'ssl cpanel get string params' );
 
+        my $security_token = $cp_pubapi->{'security_tokens'}->{'cpanel'};
+        ok( $security_token, 'security token for cpanel has been set upon first request' );
         $res = $cp_pubapi->api_request( 'cpanel', '/xml-api/cpanel', 'GET', { 'cpanel_xmlapi_module' => 'StatsBar', 'cpanel_xmlapi_func' => 'stat', 'display' => 'diskusage' } );
         like( $$res, qr/<module>StatsBar<\/module>/, 'ssl cpanel post hash params' );
+        is( $cp_pubapi->{'security_tokens'}->{'cpanel'}, $security_token, 'security_token was not changed when the second cpanel request was made' );
 
         $res = $cp_pubapi->api_request( 'cpanel', '/xml-api/cpanel', 'POST', 'cpanel_xmlapi_module=StatsBar&cpanel_xmlapi_func=stat&display=diskusage' );
         like( $$res, qr/<module>StatsBar<\/module>/, 'ssl cpanel get string params' );

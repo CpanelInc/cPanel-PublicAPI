@@ -29,14 +29,13 @@ package cPanel::PublicAPI;
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-our $VERSION = 2.0;
+our $VERSION = 2.1;
 
 use strict;
-use Socket           ();
-use Carp             ();
-use MIME::Base64     ();
-use HTTP::Tiny       ();
-use IO::Socket::INET ();
+use Carp            ();
+use MIME::Base64    ();
+use HTTP::Tiny      ();
+use HTTP::CookieJar ();
 
 our %CFG;
 
@@ -63,15 +62,7 @@ sub new {
 
     $self->{'debug'}   = $OPTS{'debug'}   || 0;
     $self->{'timeout'} = $OPTS{'timeout'} || 300;
-
-    if ( exists $OPTS{'usessl'} ) {
-        $self->{'usessl'} = $OPTS{'usessl'};
-    }
-    else {
-        $self->{'usessl'} = 1;
-    }
-    my $verify    = exists $OPTS{'ssl_verify_mode'} ? $OPTS{'ssl_verify_mode'} : 1;
-    my $keepalive = exists $OPTS{'keepalive'}       ? int $OPTS{'keepalive'}   : 0;
+    $self->{'usessl'} = exists $OPTS{'usessl'} ? $OPTS{'usessl'} : 1;
 
     if ( exists $OPTS{'ip'} ) {
         $self->{'ip'} = $OPTS{'ip'};
@@ -85,8 +76,8 @@ sub new {
 
     $self->{'ua'} = HTTP::Tiny->new(
         agent      => "cPanel::PublicAPI/$VERSION ",
-        verify_SSL => $verify,
-        keep_alive => $keepalive,
+        verify_SSL => ( exists $OPTS{'ssl_verify_mode'} ? $OPTS{'ssl_verify_mode'} : 1 ),
+        keep_alive => ( exists $OPTS{'keepalive'} ? int $OPTS{'keepalive'} : 0 ),
         timeout    => $self->{'timeout'},
     );
 
@@ -127,9 +118,8 @@ sub new {
         }
         elsif ( exists $ENV{'REMOTE_PASSWORD'} && $ENV{'REMOTE_PASSWORD'} && $ENV{'REMOTE_PASSWORD'} ne '__HIDDEN__' && exists $ENV{'SERVER_SOFTWARE'} && $ENV{'SERVER_SOFTWARE'} =~ /^cpsrvd/ ) {
             $self->debug("Got user password from the REMOTE_PASSWORD environment variables.") if $self->{'debug'};
-            $OPTS{'pass'} = $ENV{'REMOTE_PASSWORD'};
+            $self->{'pass'} = $ENV{'REMOTE_PASSWORD'};
         }
-
         else {
             Carp::confess('pass or access hash is a required parameter');
         }
@@ -143,6 +133,8 @@ sub new {
         $self->{'accesshash'} = $OPTS{'accesshash'};
         $self->debug("Using accesshash param from object creation") if $self->{'debug'};
     }
+
+    $self->_update_operating_mode();
 
     return $self;
 }
@@ -161,12 +153,14 @@ sub pass {
     my $self = shift;
     $self->{'pass'} = shift;
     delete $self->{'accesshash'};
+    $self->_update_operating_mode();
 }
 
 sub accesshash {
     my $self = shift;
     $self->{'accesshash'} = shift;
     delete $self->{'pass'};
+    $self->_update_operating_mode();
 }
 
 sub whm_api {
@@ -198,34 +192,18 @@ sub whm_api {
     my $uri = "/$query_format-api/$call";
 
     my ( $status, $statusmsg, $data ) = $self->api_request( 'whostmgr', $uri, 'POST', $formdata );
-    if ( $self->{'error'} ) {
-        die $self->{'error'};
-    }
-    if ( defined $format && ( $format eq 'json' || $format eq 'xml' ) ) {
-        return $$data;
-    }
-    else {
-        my $parsed_data;
-        eval { $parsed_data = $CFG{'serializer_can_deref'} ? $CFG{'api_serializer_obj'}->($data) : $CFG{'api_serializer_obj'}->($$data); };
-        if ( !ref $parsed_data ) {
-            $self->error("There was an issue with parsing the following response from cPanel or WHM: [data=[$$data]]");
-            die $self->{'error'};
+    return $self->_parse_returndata(
+        {
+            'caller' => 'whm_api',
+            'data'   => $data,
+            'format' => $format,
+            'call'   => $call
         }
-        if (
-            ( exists $parsed_data->{'error'} && $parsed_data->{'error'} =~ /Unknown App Requested/ ) ||    # xml-api v0 version
-            ( exists $parsed_data->{'metadata'}->{'reason'} && $parsed_data->{'metadata'}->{'reason'} =~ /Unknown app requested/ )
-          ) {                                                                                              # xml-api v1 version
-            $self->error("cPanel::PublicAPI::whm_api was called with the invalid API call of: $call.");
-            return;
-        }
-        return $parsed_data;
-    }
+    );
 }
 
 sub api_request {
     my ( $self, $service, $uri, $method, $formdata, $headers ) = @_;
-
-    $self->{'error'} = 0;
 
     $formdata ||= '';
     $method   ||= 'GET';
@@ -235,63 +213,48 @@ sub api_request {
 
     $self->_init() if !exists $CFG{'init'};
 
-    $self->{'error'} = undef;
+    undef $self->{'error'};
     my $timeout = $self->{'timeout'} || 300;
-
-    my $authstr;
-    if ( exists $self->{'accesshash'} ) {
-        $self->{'accesshash'} =~ s/[\r\n]//g;
-        $authstr = 'WHM ' . $self->{'user'} . ':' . $self->{'accesshash'};
-    }
-    elsif ( exists $self->{'pass'} ) {
-        $authstr = 'Basic ' . MIME::Base64::encode_base64( $self->{'user'} . ':' . $self->{'pass'} );
-        $authstr =~ s/[\r\n]//g;
-    }
-    else {
-        die 'No user name or password set, cannot execute query.';
-    }
 
     my $orig_alarm = 0;
     my $page;
-    my $port;
 
-    if ( $self->{'usessl'} ) {
-        $port = $service =~ /^\d+$/ ? $service : $PORT_DB{$service}{'ssl'};
-    }
-    else {
-        $port = $service =~ /^\d+$/ ? $service : $PORT_DB{$service}{'plaintext'};
-    }
-
+    my $port = $self->_determine_port_for_service($service);
     $self->debug("Found port for service $service to be $port (usessl=$self->{'usessl'})") if $self->{'debug'};
 
     eval {
-        if ( !$self->{'user'} ) {
-            $self->error("You must specify a user to login as.");
-            die $self->{'error'};    #exit eval
+        $self->{'remote_server'} = $self->{'ip'} || $self->{'host'};
+        $self->_validate_connection_settings();
+        if ( $self->{'operating_mode'} eq 'session' ) {
+            $self->_establish_session($service) if !( $self->{'security_tokens'}->{$service} && $self->{'cookie_jars'}->{$service} );
+            $self->{'ua'}->cookie_jar( $self->{'cookie_jars'}->{$service} );
         }
-        my $remote_server = $self->{'ip'}   || $self->{'host'};
-        my $server_name   = $self->{'host'} || $self->{'ip'};
-        if ( !$remote_server ) {
-            $self->error("You must set a host to connect to. (missing 'host' and 'ip' parameter)");
-            die $self->{'error'};    #exit eval
-        }
-        $server_name =~ s/\s*//g;
-        my $connection_string = $remote_server . ':' . $port;
-        my $attempts          = 0;
-        my $hassigpipe;
+
+        my $remote_server    = $self->{'remote_server'};
+        my $attempts         = 0;
         my $finished_request = 0;
+        my $hassigpipe;
 
         local $SIG{'ALRM'} = sub {
             $self->error('Connection Timed Out');
             die $self->{'error'};
         };
+
         local $SIG{'PIPE'} = sub { $hassigpipe = 1; };
         $orig_alarm = alarm($timeout);
 
         $formdata = $self->format_http_query($formdata) if ref $formdata;
 
         my $scheme = $self->{'usessl'} ? "https" : "http";
-        my $url = "$scheme://$remote_server:$port$uri";
+        my $url = "$scheme://$remote_server:$port";
+        if ( $self->{'operating_mode'} eq 'session' ) {
+            my $security_token = $self->{'security_tokens'}->{$service};
+            $url .= '/' . $self->{'security_tokens'}->{$service} . $uri;
+        }
+        else {
+            $url .= $uri;
+        }
+
         my $content;
         if ( $method eq 'POST' || $method eq 'PUT' ) {
             $content = $formdata;
@@ -299,6 +262,8 @@ sub api_request {
         else {
             $url .= "?$formdata";
         }
+        $self->debug("URL: $url") if $self->{'debug'};
+
         if ( !ref $headers ) {
             my @lines = split /\r\n/, $headers;
             $headers = {};
@@ -310,18 +275,15 @@ sub api_request {
                 push @{ $headers->{$key} }, $value;
             }
         }
+
         my $options = {
-            headers => {
-                %$headers,
-                'Authorization' => $authstr,
-            }
+            headers => $headers,
         };
         $options->{'content'} = $content if defined $content;
         my $ua = $self->{'ua'};
         while ( ++$attempts < 3 ) {
             $hassigpipe = 0;
             my $response = $ua->request( $method, $url, $options );
-            $self->debug("$method $url HTTP/1.1") if $self->{'debug'};
             if ( $response->{'status'} == 599 ) {
                 $self->error("Could not connect to $url: $response->{'content'}");
                 die $self->{'error'};    #exit eval
@@ -369,6 +331,101 @@ sub api_request {
     return ( $self->{'error'} ? 0 : 1, $self->{'error'}, \$page );
 }
 
+sub establish_tfa_session {
+    my ( $self, $service, $tfa_token ) = @_;
+    if ( $self->{'operating_mode'} ne 'session' ) {
+        $self->error("2FA-authenticated sessions are not supported when using accesshash keys");
+        die $self->{'error'};
+    }
+    if ( !( $service && $tfa_token ) ) {
+        $self->error("You must specify the service name, and the 2FA token in order to establish a 2FA-authenticated session");
+        die $self->{'error'};
+    }
+
+    undef $self->{'cookie_jars'}->{$service};
+    undef $self->{'security_tokens'}->{$service};
+    return $self->_establish_session( $service, $tfa_token );
+}
+
+sub _validate_connection_settings {
+    my $self = shift;
+
+    if ( !$self->{'user'} ) {
+        $self->error("You must specify a user to login as.");
+        die $self->{'error'};
+    }
+
+    if ( !$self->{'remote_server'} ) {
+        $self->error("You must set a host to connect to. (missing 'host' and 'ip' parameter)");
+        die $self->{'error'};
+    }
+}
+
+sub _update_operating_mode {
+    my $self = shift;
+
+    if ( exists $self->{'accesshash'} ) {
+        $self->{'accesshash'} =~ s/[\r\n]//g;
+        $self->{'ua'}->default_headers( { 'Authorization' => 'WHM ' . $self->{'user'} . ':' . $self->{'accesshash'} } );
+        $self->{'operating_mode'} = 'accesshash';
+    }
+    elsif ( exists $self->{'pass'} ) {
+        $self->{'operating_mode'} = 'session';
+
+        # This is called whenever the pass or accesshash is changed,
+        # so we reset the cookie jars, and tokens on such changes
+        $self->{'cookie_jars'}     = { map { $_ => undef } keys %PORT_DB };
+        $self->{'security_tokens'} = { map { $_ => undef } keys %PORT_DB };
+    }
+    else {
+        $self->error('You must specify an accesshash or password');
+        die $self->{'error'};
+    }
+}
+
+sub _establish_session {
+    my ( $self, $service, $tfa_token ) = @_;
+
+    return if $self->{'operating_mode'} ne 'session';
+    return if $self->{'security_tokens'}->{$service} && $self->{'cookie_jars'}->{$service};
+
+    $self->{'cookie_jars'}->{$service} = HTTP::CookieJar->new();
+    $self->{'ua'}->cookie_jar( $self->{'cookie_jars'}->{$service} );
+
+    my $port   = $self->_determine_port_for_service($service);
+    my $scheme = $self->{'usessl'} ? "https" : "http";
+    my $url    = "$scheme://$self->{'remote_server'}:$port/login";
+    my $resp   = $self->{'ua'}->post_form(
+        $url,
+        {
+            'user' => $self->{'user'},
+            'pass' => $self->{'pass'},
+            ( $tfa_token ? ( 'tfa_token' => $tfa_token ) : () ),
+        },
+    );
+
+    if ( my $security_token = ( split /\//, $resp->{'headers'}->{'location'} )[1] ) {
+        $self->{'security_tokens'}->{$service} = $security_token;
+        return 1;
+    }
+
+    $self->error("Failed to establish session and parse security token: $resp->{'status'} $resp->{'reason'}");
+    die $self->{'error'};
+}
+
+sub _determine_port_for_service {
+    my ( $self, $service ) = @_;
+
+    my $port;
+    if ( $self->{'usessl'} ) {
+        $port = $service =~ /^\d+$/ ? $service : $PORT_DB{$service}{'ssl'};
+    }
+    else {
+        $port = $service =~ /^\d+$/ ? $service : $PORT_DB{$service}{'plaintext'};
+    }
+    return $port;
+}
+
 sub cpanel_api1_request {
     my ( $self, $service, $cfg, $formdata, $format ) = @_;
 
@@ -391,22 +448,14 @@ sub cpanel_api1_request {
     $formdata->{ 'cpanel_' . $query_format . 'api_apiversion' } = 1;
 
     my ( $status, $statusmsg, $data ) = $self->api_request( $service, '/' . $query_format . '-api/cpanel', ( ( scalar keys %$formdata < 10 && _total_form_length( $formdata, 1024 ) < 1024 ) ? 'GET' : 'POST' ), $formdata );
-    if ( defined $format && ( $format eq 'json' || $format eq 'xml' ) ) {
-        return $$data;
-    }
-    else {
-        my $parsed_data;
-        eval { $parsed_data = $CFG{'serializer_can_deref'} ? $CFG{'api_serializer_obj'}->($data) : $CFG{'api_serializer_obj'}->($$data); };
-        if ( !ref $parsed_data ) {
-            $self->error("There was an issue with parsing the following response from cPanel or WHM:\n$$data");
-            die $self->{'error'};
+
+    return $self->_parse_returndata(
+        {
+            'caller' => 'cpanel_api1',
+            'data'   => $data,
+            'format' => $format,
         }
-        if ( exists $parsed_data->{'event'}->{'reason'} && $parsed_data->{'event'}->{'reason'} =~ /failed: Undefined subroutine/ ) {
-            $self->error( "cPanel::PublicAPI::cpanel_api1_request was called with the invalid API1 call of: " . $parsed_data->{'module'} . '::' . $parsed_data->{'func'} );
-            return;
-        }
-        return $parsed_data;
-    }
+    );
 }
 
 sub cpanel_api2_request {
@@ -427,22 +476,81 @@ sub cpanel_api2_request {
     $formdata->{ 'cpanel_' . $query_format . 'api_apiversion' } = 2;
     my ( $status, $statusmsg, $data ) = $self->api_request( $service, '/' . $query_format . '-api/cpanel', ( ( scalar keys %$formdata < 10 && _total_form_length( $formdata, 1024 ) < 1024 ) ? 'GET' : 'POST' ), $formdata );
 
-    if ( defined $format && ( $format eq 'json' || $format eq 'xml' ) ) {
-        return $$data;
+    return $self->_parse_returndata(
+        {
+            'caller' => 'cpanel_api2',
+            'data'   => $data,
+            'format' => $format,
+        }
+    );
+}
+
+sub _parse_returndata {
+    my ( $self, $opts_hr ) = @_;
+
+    if ( $self->{'error'} ) {
+        die $self->{'error'};
+    }
+    elsif ( ${ $opts_hr->{'data'} } =~ m/tfa_login_form/ ) {
+        $self->error("Two-Factor Authentication enabled on the account. Establish a session with the security token, or disable 2FA on the account");
+        die $self->{'error'};
+    }
+
+    if ( defined $opts_hr->{'format'} && ( $opts_hr->{'format'} eq 'json' || $opts_hr->{'format'} eq 'xml' ) ) {
+        return ${ $opts_hr->{'data'} };
     }
     else {
         my $parsed_data;
-        eval { $parsed_data = $CFG{'serializer_can_deref'} ? $CFG{'api_serializer_obj'}->($data) : $CFG{'api_serializer_obj'}->($$data); };
+        eval { $parsed_data = $CFG{'serializer_can_deref'} ? $CFG{'api_serializer_obj'}->( $opts_hr->{'data'} ) : $CFG{'api_serializer_obj'}->( ${ $opts_hr->{'data'} } ); };
         if ( !ref $parsed_data ) {
-            $self->error("There was an issue with parsing the following response from cPanel or WHM:\n$$data");
+            $self->error("There was an issue with parsing the following response from cPanel or WHM: [data=[${$opts_hr->{'data'}}]]");
             die $self->{'error'};
         }
-        if ( exists $parsed_data->{'cpanelresult'}->{'error'} && $parsed_data->{'cpanelresult'}->{'error'} =~ /Could not find function/ ) {    # xml-api v1 version
-            $self->error( "cPanel::PublicAPI::cpanel_api2_request was called with the invalid API2 call of: " . $parsed_data->{'cpanelresult'}->{'module'} . '::' . $parsed_data->{'cpanelresult'}->{'func'} );
-            return;
-        }
-        return $parsed_data;
+
+        my $error_check_dt = {
+            'whm_api'     => \&_check_whm_api_errors,
+            'cpanel_api1' => \&_check_cpanel_api1_errors,
+            'cpanel_api2' => \&_check_cpanel_api2_errors,
+        };
+        return $error_check_dt->{ $opts_hr->{'caller'} }->( $self, $opts_hr->{'call'}, $parsed_data );
     }
+}
+
+sub _check_whm_api_errors {
+    my ( $self, $call, $parsed_data ) = @_;
+
+    if (
+        ( exists $parsed_data->{'error'} && $parsed_data->{'error'} =~ /Unknown App Requested/ ) ||    # xml-api v0 version
+        ( exists $parsed_data->{'metadata'}->{'reason'} && $parsed_data->{'metadata'}->{'reason'} =~ /Unknown app\s+(?:\(.+\))?\s+requested/ )    # xml-api v1 version
+      ) {
+        $self->error("cPanel::PublicAPI::whm_api was called with the invalid API call of: $call.");
+        return;
+    }
+    return $parsed_data;
+}
+
+sub _check_cpanel_api1_errors {
+    my ( $self, undef, $parsed_data ) = @_;
+    if (
+        exists $parsed_data->{'event'}->{'reason'} && (
+            $parsed_data->{'event'}->{'reason'} =~ /failed: Undefined subroutine/ ||                                                              # pre-11.44 error message
+            $parsed_data->{'event'}->{'reason'} =~ m/failed: Can\'t use string/                                                                   # 11.44+ error message
+        )
+      ) {
+        $self->error( "cPanel::PublicAPI::cpanel_api1_request was called with the invalid API1 call of: " . $parsed_data->{'module'} . '::' . $parsed_data->{'func'} );
+        return;
+    }
+    return $parsed_data;
+}
+
+sub _check_cpanel_api2_errors {
+    my ( $self, undef, $parsed_data ) = @_;
+
+    if ( exists $parsed_data->{'cpanelresult'}->{'error'} && $parsed_data->{'cpanelresult'}->{'error'} =~ /Could not find function/ ) {           # xml-api v1 version
+        $self->error( "cPanel::PublicAPI::cpanel_api2_request was called with the invalid API2 call of: " . $parsed_data->{'cpanelresult'}->{'module'} . '::' . $parsed_data->{'cpanelresult'}->{'func'} );
+        return;
+    }
+    return $parsed_data;
 }
 
 sub _total_form_length {
@@ -541,3 +649,4 @@ sub format_http_query {
     }
     return $formdata;
 }
+
