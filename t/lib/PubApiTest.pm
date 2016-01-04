@@ -15,6 +15,7 @@ our $test_config = {};
 sub api_request {
     my ( $self, $service, $uri, $method, $formdata ) = @_;
 
+    undef $self->{'error'};
     if ( defined $test_config->{'badcall'} ) {
         my $badcall_return;
         if ( $test_config->{'badcall'} eq 'whmapi' ) {
