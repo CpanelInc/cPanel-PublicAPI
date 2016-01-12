@@ -31,7 +31,7 @@ cPanel::PublicAPI - A perl interface for interacting with cPanel
   # Perform an API2 query when authenticated as a user
   $cp->cpanel_api2_request('cpanel',
     {
-      'module' => Email,
+      'module' => 'Email',
       'func' => 'listpopswithdisk',
     }
   );
@@ -56,7 +56,7 @@ cPanel::PublicAPI - A perl interface for interacting with cPanel
         'func' => 'lastlogin',
         'user' => 'someuser'
     }
-  )
+  );
   # Pass parameters to an API1 query
   $cp->cpanel_api1_request('cpanel',
     {

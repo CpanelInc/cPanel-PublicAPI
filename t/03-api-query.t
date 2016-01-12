@@ -20,7 +20,7 @@ if ( !-e $homedir . '/.accesshash' ) {
 }
 
 # SSL tests
-my $pubapi = cPanel::PublicAPI->new( 'ssl_verify_mode' => 0 );
+my $pubapi = check_api_access();
 
 isa_ok( $pubapi, 'cPanel::PublicAPI' );
 
@@ -142,4 +142,18 @@ sub load_cpanel_config {
         $cpanel_config{$key} = $value;
     }
     return \%cpanel_config;
+}
+
+sub check_api_access {
+    my $pubapi = cPanel::PublicAPI->new( 'ssl_verify_mode' => 0 );
+    my $res = eval { $pubapi->whm_api('applist') };
+    if ($@) {
+        plan skip_all => "Failed to verify API access as current user: $@";
+    }
+
+    if ( exists $res->{'data'}->{'app'} && ref $res->{'data'}->{'app'} eq 'ARRAY' ) {
+        return $pubapi if grep { $_ eq 'createacct' } @{ $res->{'data'}->{'app'} };
+    }
+
+    plan skip_all => "Current user doesn't appear to have proper privileges";
 }

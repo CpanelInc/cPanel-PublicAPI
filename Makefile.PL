@@ -16,7 +16,7 @@ WriteMakefile(
         'JSON::XS'  => 2.0,
         'URI::Escape' => 3,
         'IO::Socket::INET' => 1.31,
-        'IO::Socket::SSL' => 1.33,
+        'IO::Socket::SSL' => 1.988, # Versions below this do not handle close calls properly
         'HTTP::Tiny' => 0.042,
         'HTTP::CookieJar' => 0,
     },
