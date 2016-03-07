@@ -1,3 +1,5 @@
+=encoding UTF-8
+
 =head1 NAME
 
 cPanel::PublicAPI::WHM - Legacy interface for querying WHM.
