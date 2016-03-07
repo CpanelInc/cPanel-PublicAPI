@@ -1,3 +1,5 @@
+=encoding UTF-8
+
 =head1 NAME
 
 cPanel::PublicAPI::WHM::CachedVersion - Allows for lookups of remote versions of cPanel & WHM.

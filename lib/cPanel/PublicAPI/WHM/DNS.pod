@@ -1,3 +1,5 @@
+=encoding UTF-8
+
 =head1 NAME
 
 cPanel::PublicAPI::WHM::DNS - A module for interacting with WHM's DNS clustering system.

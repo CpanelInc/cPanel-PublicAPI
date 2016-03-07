@@ -1,10 +1,12 @@
+=encoding UTF-8
+
 =head1 NAME
 
 cPanel::PublicAPI::WHM::Legacy - A module for handling Cpanel::Accounting backward compatibility within the cPanel::PublicAPI framework.
 
 =head1 DESCRIPTION
 
-This module should never be used, please use cPanel::PublicAPI->whm_api() instead.
+This module should never be used, please use cPanel::PublicAPI-E<gt>whm_api() instead.
 
 =head1 Bugs
 
