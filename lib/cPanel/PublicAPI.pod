@@ -302,7 +302,7 @@ The function used for querying URLs directly is api_request().  It will always r
 
 =item * $formdata - The data you wish to pass to the URL
 
-=item * $headers - Any additional headers are to be passed with the request.  These can be either a flat string or as a hashref like {'headertitle' => 'headerdata'}
+=item * $headers - Any additional headers are to be passed with the request.  These can be either a flat string or as a hashref like {'headertitle' =E<gt> 'headerdata'}
 
 =back
 
@@ -370,7 +370,7 @@ would return:
 
 =over
 
-=item C<$pubapi-\>{'error'}>
+=item C<$pubapi-E<gt>{'error'}>
 
 =back
 

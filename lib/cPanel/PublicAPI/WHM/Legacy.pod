@@ -6,7 +6,7 @@ cPanel::PublicAPI::WHM::Legacy - A module for handling Cpanel::Accounting backwa
 
 =head1 DESCRIPTION
 
-This module should never be used, please use cPanel::PublicAPI->whm_api() instead.
+This module should never be used, please use cPanel::PublicAPI-E<gt>whm_api() instead.
 
 =head1 Bugs
 
