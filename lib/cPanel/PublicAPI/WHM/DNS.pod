@@ -36,7 +36,7 @@ Call specific parameters:
 
 =item * $user - The user to authenticate DNS requests as.
 
-=item * $pass - The accesshash to authenticate DNS requests with
+=item * $pass - The accesshash or API token to authenticate DNS requests with
 
 =item * $version - The version of cPanel/WHM of the machine being added to the cluster
 

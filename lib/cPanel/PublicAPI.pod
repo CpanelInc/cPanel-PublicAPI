@@ -13,7 +13,9 @@ cPanel::PublicAPI - A perl interface for interacting with cPanel
   # or specify a user/password
   my $cp = cPanel::PublicAPI->new( 'user' => 'someuser', 'pass' => 'somepass' );
   # or specify an accesshash
-  my $cp = cPanel::PublicAPI->new('user' => 'someuser', 'accesshash' => $accesshash );
+  my $cp = cPanel::PublicAPI->new( 'user' => 'someuser', 'accesshash' => $accesshash );
+  # or specify an API token
+  my $cp = cPanel::PublicAPI->new( 'user' => 'someuser', 'api_token' => $api_token );
   
   # Perform an xml-api query
   $cp->whm_api('listaccts');
@@ -90,7 +92,7 @@ a cPanel::PublicAPI object is constructed with the new() method.
 
   my $publicapi = cPanel::PublicAPI->new();
 
-When passed no parameters this create the object using the accesshash in ~/.accesshash.  If no .accesshash file exists, it will attempt to use the REMOTE_PASS environment variable, if that is not defined, object creation will error out.
+When passed no parameters, this will create the object using the accesshash in ~/.accesshash. If no .accesshash file exists, it will attempt to use the REMOTE_PASS environment variable. If the REMOTE_PASS variable is not defined, object creation will error out.
 
 =head3 new() parameters
 
@@ -103,6 +105,8 @@ options for new() are specified as a hash reference, the following parameters ar
 =item * pass - The password to use for authentication.
 
 =item * accesshash - The accesshash to use for authentication.
+
+=item * api_token - The API token to use for authentication.
 
 =item * timeout - The length of time (in seconds) before an http request should time out.  Default to 300.
 
@@ -122,22 +126,36 @@ options for new() are specified as a hash reference, the following parameters ar
 
 =head3 Notes about authentication
 
-There are two sets of credentials that can be used to authenticate to WHM.
+There are three sets of credentials that can be used to authenticate to WHM.
 
 First we have the basic user/password combinations:
 
   use cPanel::PublicAPI;
   my $pubapi = cPanel::PublicAPI->new( 'user' => 'foo', 'pass' => 'bar' );
 
-The other type of authentication is accesshash authentication.  To configure accesshashes visit “Setup remote access key”
+Next is API token authentication. To create an API token, visit "Manage API Tokens" in WHM and click Generate Token. Fill out
+the form and click Generate. Your token will appear in a special notice. Make certain that you save your API token in a safe location
+on your workstation. You cannot access the token after you navigate away from the interface or refresh the API Tokens table.
+
+To use an API token with this module, do the following:
+
+  use cPanel::PublicAPI;
+  my $pubapi = cPanel::PublicAPI->new( 'user' => 'foo', 'api_token' => $string_containing_api_token );
+
+
+Last is accesshash authentication.  To configure accesshashes, visit “Setup remote access key”
 in WHM which will generate an accesshash for your server if one does not already exist. It will store the generated accesshash
-in /root/.accesshash.  To use an accesshash with this module you can do something like the following:
+in ~/.accesshash.
+
+To use an accesshash with this module, do the following:
 
   use cPanel::PublicAPI;
   my $pubapi = cPanel::PublicAPI->new( 'user' => 'foo', 'accesshash' => $string_containing_access_hash );
 
-It should be noted that the access hash can contain newlines in it,  Newlines will be stripped by the object when
+It should be noted that the accesshash can contain newlines in it. Newlines will be stripped by the object when
 it attempts to perform a query.
+
+B<NOTE:> Accesshash authentication is deprecated in cPanel & WHM version 64.
 
 =head3 Dependencies
 
@@ -339,6 +357,14 @@ Allows you to change the password that your PublicAPI object is authenticating w
 =back
 
 Allows you to change the accesshash that your PublicAPI object is authenticating with, this will remove the stored password from the object.
+
+=over
+
+=item C<api_token()>
+
+=back
+
+Allows you to change the API token that your PublicAPI object is authenticating with, this will remove the stored password from the object.
 
 =over
 

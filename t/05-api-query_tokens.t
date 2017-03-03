@@ -48,17 +48,11 @@ if ( !-e $homedir . '/.accesshash' ) {
     plan skip_all => 'This test requires that an account hash is defined (see "Setup Remote Access Keys" in WHM)';
 }
 
-check_cpanel_version() or plan skip_all => 'This test requires cPanel version 54 or higher';
+check_cpanel_version(63) or plan skip_all => 'This test requires cPanel version 64 or higher';
 
-eval { require MIME::Base32; require Digest::SHA; 1; } or do {
-    plan skip_all => 'This test requires the MIME::Base32 and Digest::SHA modules';
-};
-unshift @INC, '/usr/local/cpanel';
-require Cpanel::Security::Authn::TwoFactorAuth::Google;
-
-my $pubapi = check_api_access_and_config();
-
+my $pubapi = cPanel::PublicAPI->new( 'ssl_verify_mode' => 0 );
 if ( !-e '/var/cpanel/users/papiunit' ) {
+    plan tests => 5;
     my $password = generate_password();
     my $res      = $pubapi->whm_api(
         'createacct',
@@ -71,16 +65,7 @@ if ( !-e '/var/cpanel/users/papiunit' ) {
     );
     like( $res->{'metadata'}->{'reason'}, qr/Account Creation Ok/, 'Test account created' );
 
-    $res = $pubapi->whm_api(
-        'setacls',
-        {
-            'reseller'        => 'papiunit',
-            'acl-create-acct' => 1,
-        }
-    );
-    ok( $res->{'metadata'}->{'result'}, 'Assigned create-acct ACL successfully' );
-
-    _test_tfa_as_reseller( 'papiunit', $password );
+    _test_api_token_as_reseller( 'papiunit', $password );
 
     $res = $pubapi->whm_api(
         'removeacct',
@@ -94,32 +79,23 @@ else {
     plan skip_all => 'Unable to create test account. It already exists';
 }
 
-done_testing();
-
-sub _test_tfa_as_reseller {
+sub _test_api_token_as_reseller {
     my ( $reseller, $password ) = @_;
 
+    # Create the API Token
     my $reseller_api = cPanel::PublicAPI->new( 'user' => $reseller, 'pass' => $password, 'ssl_verify_mode' => 0 );
-    my $res = $reseller_api->whm_api( 'twofactorauth_generate_tfa_config', {} );
-    ok( $res->{'metadata'}->{'result'}, 'Successfully called generate tfa config API call as reseller' );
+    my $res = $reseller_api->whm_api( 'api_token_create', { 'token_name' => 'my_token' } );
+    ok( $res->{'metadata'}->{'result'}, 'Successfully called api_token_create API call as reseller' );
+    my $plaintext_token = $res->{'data'}->{'token'};
 
-    my $tfa_secret = $res->{'data'}->{'secret'};
-    my $google_auth = Cpanel::Security::Authn::TwoFactorAuth::Google->new( { 'secret' => $tfa_secret, 'account_name' => '', 'issuer' => '' } );
-    $res = $reseller_api->whm_api(
-        'twofactorauth_set_tfa_config',
-        {
-            'secret'    => $tfa_secret,
-            'tfa_token' => $google_auth->generate_code(),
-        }
-    );
-    ok( $res->{'metadata'}->{'result'}, '2FA successfully configured for reseller' );
+    my $pub_api_with_token = cPanel::PublicAPI->new( 'user' => $reseller, 'api_token' => 'this is so wrong', 'ssl_verify_mode' => 0 );
 
-    eval { $reseller_api->whm_api('loadavg') };
-    ok( $@, 'API calls fail without a 2FA session established' );
+    eval { $pub_api_with_token->whm_api('loadavg') };
+    ok( $@, 'API call fails with wrong API token' );
 
-    $reseller_api->establish_tfa_session( 'whostmgr', $google_auth->generate_code() );
-    $res = $reseller_api->whm_api('loadavg');
-    ok( defined $res->{'one'}, 'API call successfully made after establishing 2FA session' );
+    $pub_api_with_token->api_token($plaintext_token);
+    $res = $pub_api_with_token->whm_api('loadavg');
+    ok( defined $res->{'one'}, 'API call successfully made using the correct token' );
 }
 
 sub generate_password {
@@ -132,43 +108,12 @@ sub generate_password {
 }
 
 sub check_cpanel_version {
+    my $min_version = shift;
     open( my $version_fh, '<', '/usr/local/cpanel/version' ) || return 0;
     my $version = do { local $/; <$version_fh> };
     chomp $version;
     my ( $maj, $min, $rev, $sup ) = split /[\._]/, $version;
-    return 1 if $min >= 53;
+    return 1 if $min >= $min_version;
     return 0;
 }
 
-sub check_api_access_and_config {
-
-    open( my $config_fh, '<', '/var/cpanel/cpanel.config' ) || BAIL_OUT('Could not load /var/cpanel/cpanel.config');
-    my $securitypolicy_enabled         = 0;
-    my $securitypolicy_xml_api_enabled = 0;
-    while ( my $line = readline($config_fh) ) {
-        next if $line !~ /=/;
-        chomp $line;
-        my ( $key, $value ) = split( /=/, $line, 2 );
-        if ( $key eq 'SecurityPolicy::TwoFactorAuth' ) {
-            $securitypolicy_enabled = 1 if $value;
-        }
-        elsif ( $key eq 'SecurityPolicy::xml-api' ) {
-            $securitypolicy_xml_api_enabled = 1 if $value;
-        }
-    }
-
-    plan skip_all => '2FA security policy is disabled on the server'             if !$securitypolicy_enabled;
-    plan skip_all => 'Security policies do not apply to API calls on the server' if !$securitypolicy_xml_api_enabled;
-
-    my $pubapi = cPanel::PublicAPI->new( 'ssl_verify_mode' => 0 );
-    my $res = eval { $pubapi->whm_api('applist') };
-    if ($@) {
-        plan skip_all => "Failed to verify API access as current user: $@";
-    }
-
-    if ( exists $res->{'data'}->{'app'} && ref $res->{'data'}->{'app'} eq 'ARRAY' ) {
-        return $pubapi if grep { $_ eq 'createacct' } @{ $res->{'data'}->{'app'} };
-    }
-
-    plan skip_all => "Current user doesn't appear to have proper privileges";
-}

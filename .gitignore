@@ -1,0 +1,9 @@
+*.tdy
+*.bak
+cPanel-PublicAPI-*
+/Makefile
+/blib
+/pm_to_blib
+/MYMETA.json
+/MYMETA.yml
+/Makefile.old
