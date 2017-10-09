@@ -328,6 +328,14 @@ The function used for querying URLs directly is api_request().  It will always r
 
 =over
 
+=item C<establish_tfa_session()>
+
+=back
+
+See L</Two-Factor Authentication (2FA)> above.
+
+=over
+
 =item C<set_debug()>
 
 =back
