@@ -20,11 +20,17 @@ lib/cPanel/PublicAPI/WHM/XMLAPI.pm
 lib/cPanel/PublicAPI/WHM/XMLAPI.pod
 Makefile.PL
 MANIFEST
+MANIFEST.SKIP
+.perltidyrc
 README
 t/00-load.t
 t/01-api-format.t
 t/02-construct.t
 t/03-api-query.t
+t/04-tfa-sessions.t
+t/05-api-query_tokens.t
+t/check-changes.t
+t/cpan-changes.t
 t/lib/PubApiTest.pm
 t/manifest.t
 t/pod-coverage.t

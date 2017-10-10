@@ -1,5 +1,16 @@
 Revision history for cPanel-PublicAPI
 
+2.2.1 2017-10-09
+    Update Changes, MANIFEST and README.
+
+2.2 2017-04-17
+    Implement HTTP support via HTTP::Tiny.
+    Support two-factor authentication (2FA) workflow.
+    Establish session when using user/pass; accesshash still uses Basic Auth.
+    Support API tokens via new api_token constructor option.
+    Documentation fixes.
+    Unit test fixes.
+
 2.0 2015-09-15
     Updated PublicAPI pod file to include description
     of new ssl_verify_mode option.
@@ -8,17 +19,17 @@ Revision history for cPanel-PublicAPI
 1.3 2015-09-14
     Fix hash randomization problem on newer Perls.
 
-1.2	8/26/2015
+1.2	2015-08-26
 	Updated from main code-base, changes include:
-		Fixed non-numeric comparison errors.
-		Cleaned up uninitialized variable use.
-		Error checking after api_request in cPanel::PublicAPI::whm_api() call.
-		Correct comments in copyright headers w/ modified bsd license
-		Correct disclaimer in 3-clause BSD license
-		Changes to accommodate latest version of  IO::Socket::SSL
-		Removed Frontpage references
-		Changed to work with self-signed SSL certificates
+    Fixed non-numeric comparison errors.
+    Cleaned up uninitialized variable use.
+    Error checking after api_request in cPanel::PublicAPI::whm_api() call.
+    Correct comments in copyright headers w/ modified bsd license
+    Correct disclaimer in 3-clause BSD license
+    Changes to accommodate latest version of  IO::Socket::SSL
+    Removed Frontpage references
+    Changed to work with self-signed SSL certificates
 
-1.0     2/24/2011
-        First version, Implement HTTP querying.
+1.0 2011-02-24
+    First version, Implement HTTP querying.
 

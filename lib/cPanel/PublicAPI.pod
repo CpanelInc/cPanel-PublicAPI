@@ -7,7 +7,7 @@ cPanel::PublicAPI - A perl interface for interacting with cPanel
 =head1 SYNOPSIS
 
   use cPanel::PublicAPI;
-  
+
   # Auto detect authentication information
   my $cp = cPanel::PublicAPI->new();
   # or specify a user/password
@@ -16,14 +16,14 @@ cPanel::PublicAPI - A perl interface for interacting with cPanel
   my $cp = cPanel::PublicAPI->new( 'user' => 'someuser', 'accesshash' => $accesshash );
   # or specify an API token
   my $cp = cPanel::PublicAPI->new( 'user' => 'someuser', 'api_token' => $api_token );
-  
+
   # Perform an xml-api query
   $cp->whm_api('listaccts');
   # Pass parameters to the xml-api
   $cp->whm_api('createacct', {'username' => 'someuser', 'password' => 's0m3P4$$w()Rd' } );
   # Return JSON from xml-api (rather than a hash reference)
   $cp->whm_api('version', undef, 'json');
-  
+
   # Perform an API2 query
   $cp->cpanel_api2_request('whostmgr',
     {
@@ -41,7 +41,7 @@ cPanel::PublicAPI - A perl interface for interacting with cPanel
   );
   # Pass parameters to an API2 call
   $cp->cpanel_api2_request('cpanel'
-    { 
+    {
         'module' => 'Email',
         'func' => 'addpop',
     },
@@ -52,7 +52,7 @@ cPanel::PublicAPI - A perl interface for interacting with cPanel
         'quota' => 200
     },
   );
-  
+
   # Perform an API1 query
   $cp->cpanel_api1_request('whostmgr',
     {
@@ -69,13 +69,13 @@ cPanel::PublicAPI - A perl interface for interacting with cPanel
     },
     [ 'somedb', 'somedbuser', 'ALL' ]
   );
-  
+
   # perform an HTTP GET request against a URL
   $cp->api_request('whostmgr', '/xml-api/loadavg', 'GET');
-  
+
   # perform an HTTP GET request with parameters
   $cp->api_request('whostmgr', '/xml-api/createacct', 'GET', {'username' => 'someuser', domain => 'domain.com'} );
-  
+
   # perform an HTTP POST request (with parameters)
   $cp->api_request('whostmgr', '/xml-api/createacct', 'POST', {'username' => 'someuser', domain => 'domain.com'} );
 
@@ -325,6 +325,14 @@ The function used for querying URLs directly is api_request().  It will always r
 =back
 
 =head1 Other Features
+
+=over
+
+=item C<establish_tfa_session()>
+
+=back
+
+See L</Two-Factor Authentication (2FA)> above.
 
 =over
 

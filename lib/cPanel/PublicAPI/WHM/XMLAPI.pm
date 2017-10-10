@@ -31,7 +31,7 @@ package cPanel::PublicAPI::XMLAPI;
 
 use cPanel::PublicAPI ();
 
-our $VERSION = 1.0;
+our $VERSION = '2.2.1';
 
 package cPanel::PublicAPI;
 
