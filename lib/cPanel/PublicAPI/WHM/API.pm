@@ -30,7 +30,7 @@ package cPanel::PublicAPI::API;
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 use cPanel::PublicAPI ();
-our $VERSION = '2.2.1';
+our $VERSION = '2.3';
 
 package cPanel::PublicAPI;
 

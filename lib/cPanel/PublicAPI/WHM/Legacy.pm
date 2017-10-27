@@ -31,7 +31,7 @@ package cPanel::PublicAPI::Legacy;
 
 use cPanel::PublicAPI ();
 
-our $VERSION = '2.2.1';
+our $VERSION = '2.3';
 
 package cPanel::PublicAPI;
 
