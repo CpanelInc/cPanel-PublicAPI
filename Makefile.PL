@@ -2,6 +2,8 @@ use strict;
 use warnings;
 use ExtUtils::MakeMaker;
 
+die "OS unsupported\n" if $^O eq 'MSWin32'; # Requires getpwuid to be implemented.
+
 WriteMakefile(
     NAME          => 'cPanel::PublicAPI',
     AUTHOR        => q{cPanel, Inc. <integration@cpanel.net>},

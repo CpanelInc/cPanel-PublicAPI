@@ -4,6 +4,8 @@ Revision history for cPanel-PublicAPI
     Bump version number to be strictly greater than 2.2
     Switch cPanel provided encoder to be the real encoder: Cpanel::Encoder::URI
     Testing commits on Travis now.
+    Update README
+    Block install/test reports for windows since they require getpwuid to pass.
     
 2.2.1 2017-10-09
     Update Changes, MANIFEST and README.
