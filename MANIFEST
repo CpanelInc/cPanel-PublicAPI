@@ -21,8 +21,8 @@ lib/cPanel/PublicAPI/WHM/XMLAPI.pod
 Makefile.PL
 MANIFEST
 MANIFEST.SKIP
-.perltidyrc
 README
+README.mkdn
 t/00-load.t
 t/01-api-format.t
 t/02-construct.t
