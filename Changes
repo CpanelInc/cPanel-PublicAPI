@@ -1,7 +1,8 @@
 Revision history for cPanel-PublicAPI
 
-2.3  2017-10-23
+2.3  2018-12-28
     Bump version number to be strictly greater than 2.2
+    Switch cPanel provided encoder to be the real encoder: Cpanel::Encoder::URI
 
 2.2.1 2017-10-09
     Update Changes, MANIFEST and README.

@@ -614,7 +614,7 @@ sub _init {
 
     # moved this over to a pattern to allow easy change of deps
     foreach my $encoder (
-        [ 'Cpanel/CPAN/URI/Escape.pm', \&Cpanel::CPAN::URI::Escape::uri_escape ],
+        [ 'Cpanel/Encoder/URI.pm', \&Cpanel::Encoder::URI::uri_encode_str ],
         [ 'URI/Escape.pm',             \&URI::Escape::uri_escape ],
       ) {
         my $module   = $encoder->[0];
