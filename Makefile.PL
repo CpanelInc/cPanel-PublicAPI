@@ -23,6 +23,11 @@ WriteMakefile(
         'HTTP::Tiny'       => 0.042,
         'HTTP::CookieJar'  => 0,
     },
+    META_MERGE => {
+        resources => {
+            repository => 'https://github.com/CpanelInc/cPanel-PublicAPI',
+        },
+    },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES    => 'cPanel-PublicAPI-*' },
 );
