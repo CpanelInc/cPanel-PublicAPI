@@ -38,12 +38,23 @@ use cPanel::PublicAPI ();
 
 check_cpanel_version(63) or plan skip_all => 'This test requires cPanel version 64 or higher';
 
-my ($created_token, $token_name);
+my ($created_token, $token_name, $created_account);
+
+my $random_username;
+
+do {
+    $random_username = 'papi' . substr( rand, 2, 8 ) . 'test';
+} while -e "/var/cpanel/users/$random_username";
 
 END {
     if ($created_token) {
         diag "Deleting temporary root WHM API token “$token_name” …";
         system('/usr/local/cpanel/bin/whmapi1', 'api_token_revoke', "token_name=$token_name");
+    }
+
+    if ($created_account) {
+        diag "Deleting temporary cPanel account “$random_username” …";
+        system('/usr/local/cpanel/scripts/removeacct', '--force', $random_username);
     }
 }
 
@@ -68,13 +79,7 @@ $created_token = $1;
 
 my $pubapi = cPanel::PublicAPI->new( usessl => 0, user => 'root', api_token => $created_token );
 
-my $random_username;
-
-do {
-    $random_username = 'papi' . substr( rand, 2, 8 ) . 'test';
-} while -e "/var/cpanel/users/$random_username";
-
-plan tests => 5;
+plan tests => 6;
 
 my $password = generate_password();
 
@@ -91,7 +96,11 @@ my $res      = $pubapi->whm_api(
 );
 like( $res->{'metadata'}->{'reason'}, qr/Account Creation Ok/, 'Test account created' );
 
+$created_account = 1;
+
 _test_api_token_as_reseller( $random_username, $password );
+
+_test_cpanel_api_token( $random_username, $password );
 
 diag "Deleting temporary reseller “$random_username” …";
 
@@ -102,6 +111,8 @@ $res = $pubapi->whm_api(
     }
 );
 like( $res->{'metadata'}->{'reason'}, qr/\Q$random_username\E/, 'Test Account Removed' );
+
+$created_account = 0;
 
 #----------------------------------------------------------------------
 
@@ -122,6 +133,21 @@ sub _test_api_token_as_reseller {
     $pub_api_with_token->api_token($plaintext_token);
     $res = $pub_api_with_token->whm_api('loadavg');
     ok( defined $res->{'one'}, 'API call successfully made using the correct token' );
+}
+
+sub _test_cpanel_api_token {
+    my ( $username, $password ) = @_;
+
+    # Unfortunately, for now we can’t actually create the token via this module.
+    my $out = `/usr/local/cpanel/bin/uapi --output=json --user=$username Tokens create_full_access name=fulltoken`;
+
+    $out =~ m<"token":"(.+?)"> or die "No API token in response: ($out)";
+    my $token = $1;
+
+    # Create the API Token
+    my $api = cPanel::PublicAPI->new( 'user' => $username, api_token => $token, usessl => 0 );
+    my $res = $api->cpanel_api2_request( 'cpanel', { module => 'Email', func => 'listpops' } );
+    ok( $res->{'cpanelresult'}{'event'}{'result'}, 'Successfully called API2 Email::listpops with token' );
 }
 
 sub generate_password {
