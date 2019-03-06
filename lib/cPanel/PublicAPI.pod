@@ -150,7 +150,8 @@ To use an API token with this module, do the following:
 
 =item 3. WHM Access Hash
 
-B<NOTE:> Accesshash authentication is deprecated as of cPanel & WHM version 64.
+B<NOTE:> Accesshash authentication is deprecated as of cPanel & WHM version 64,
+and version 68 removed the ability to create new hashes.
 
 To configure accesshashes, visit “Setup remote access key”
 in WHM which will generate an accesshash for your server if one does not already exist. It will store the generated accesshash in F<~/.accesshash>.
