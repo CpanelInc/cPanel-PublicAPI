@@ -36,7 +36,7 @@ use Test::More;    # last test to print
 
 use cPanel::PublicAPI ();
 
-check_cpanel_version(63) or plan skip_all => 'This test requires cPanel version 64 or higher';
+check_cpanel_version(79) or plan skip_all => 'This test requires cPanel version 64 or higher';
 
 my ($created_token, $token_name, $created_account);
 
