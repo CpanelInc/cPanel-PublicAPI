@@ -104,7 +104,7 @@ options for new() are specified as a hash reference, the following parameters ar
 
 =item * pass - The password to use for authentication.
 
-=item * accesshash - The accesshash to use for authentication.
+=item * accesshash - The accesshash to use for authentication (WHM only).
 
 =item * api_token - The API token to use for authentication.
 
@@ -124,28 +124,36 @@ options for new() are specified as a hash reference, the following parameters ar
 
 =back
 
-=head3 Notes about authentication
+=head3 Authentication methods
 
-There are three sets of credentials that can be used to authenticate to WHM.
+This module supports three authentication methods:
 
-First we have the basic user/password combinations:
+=over
+
+=item 1. Username & Password
 
   use cPanel::PublicAPI;
   my $pubapi = cPanel::PublicAPI->new( 'user' => 'foo', 'pass' => 'bar' );
 
-Next is API token authentication. To create an API token, visit "Manage API Tokens" in WHM and click Generate Token. Fill out
-the form and click Generate. Your token will appear in a special notice. Make certain that you save your API token in a safe location
-on your workstation. You cannot access the token after you navigate away from the interface or refresh the API Tokens table.
+=item 2. API Token
+
+(Note: This method does not work with Webmail.)
+
+To create an API token, visit "Manage API Tokens" in cPanel or WHM, and follow the appropriate prompts.
+Your token will appear in a special notice. Make certain that you save your API token in a safe location, as this is the only time the token will be shown
+to you.
 
 To use an API token with this module, do the following:
 
   use cPanel::PublicAPI;
   my $pubapi = cPanel::PublicAPI->new( 'user' => 'foo', 'api_token' => $string_containing_api_token );
 
+=item 3. WHM Access Hash
 
-Last is accesshash authentication.  To configure accesshashes, visit “Setup remote access key”
-in WHM which will generate an accesshash for your server if one does not already exist. It will store the generated accesshash
-in ~/.accesshash.
+B<NOTE:> Accesshash authentication is deprecated as of cPanel & WHM version 64.
+
+To configure accesshashes, visit “Setup remote access key”
+in WHM which will generate an accesshash for your server if one does not already exist. It will store the generated accesshash in F<~/.accesshash>.
 
 To use an accesshash with this module, do the following:
 
@@ -155,7 +163,7 @@ To use an accesshash with this module, do the following:
 It should be noted that the accesshash can contain newlines in it. Newlines will be stripped by the object when
 it attempts to perform a query.
 
-B<NOTE:> Accesshash authentication is deprecated in cPanel & WHM version 64.
+=back
 
 =head3 Dependencies
 
