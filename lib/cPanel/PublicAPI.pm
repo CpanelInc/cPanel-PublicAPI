@@ -235,6 +235,19 @@ sub api_request {
     my $port = $self->_determine_port_for_service($service);
     $self->debug("Found port for service $service to be $port (usessl=$self->{'usessl'})") if $self->{'debug'};
 
+    if ($self->{'operating_mode'} eq 'accesshash') {
+        my $token_app = ($service eq 'whostmgr') ? 'whm' : $service;
+
+        my $auth_val = sprintf(
+            '%s %s:%s',
+            $token_app,
+            $self->{'user'},
+            $self->{'accesshash'},
+        );
+
+        $self->{'ua'}->default_headers( { 'Authorization' => $auth_val } );
+    }
+
     eval {
         $self->{'remote_server'} = $self->{'ip'} || $self->{'host'};
         $self->_validate_connection_settings();
@@ -379,7 +392,6 @@ sub _update_operating_mode {
 
     if ( exists $self->{'accesshash'} ) {
         $self->{'accesshash'} =~ s/[\r\n]//g;
-        $self->{'ua'}->default_headers( { 'Authorization' => 'WHM ' . $self->{'user'} . ':' . $self->{'accesshash'} } );
         $self->{'operating_mode'} = 'accesshash';
     }
     elsif ( exists $self->{'pass'} ) {
