@@ -429,10 +429,15 @@ sub _establish_session {
 
     if ( my $security_token = ( split /\//, $resp->{'headers'}->{'location'} )[1] ) {
         $self->{'security_tokens'}->{$service} = $security_token;
+        $self->debug("Established $service session");
         return 1;
     }
 
-    $self->error("Failed to establish session and parse security token: $resp->{'status'} $resp->{'reason'}");
+    my $details = $resp->{'reason'};
+    $details .= " ($resp->{'content'})" if $resp->{'reason'} == 599;
+
+    $self->error("Failed to establish session and parse security token: $resp->{'status'} $details");
+
     die $self->{'error'};
 }
 
