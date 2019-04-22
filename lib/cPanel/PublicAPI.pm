@@ -289,6 +289,17 @@ sub api_request {
             }
         }
 
+        if ($self->{'operating_mode'} eq 'accesshash') {
+            my $token_app = ($service eq 'whostmgr') ? 'whm' : $service;
+
+            $headers->{'Authorization'} = sprintf(
+                '%s %s:%s',
+                $token_app,
+                $self->{'user'},
+                $self->{'accesshash'},
+            );
+        }
+
         my $options = {
             headers => $headers,
         };
@@ -379,7 +390,6 @@ sub _update_operating_mode {
 
     if ( exists $self->{'accesshash'} ) {
         $self->{'accesshash'} =~ s/[\r\n]//g;
-        $self->{'ua'}->default_headers( { 'Authorization' => 'WHM ' . $self->{'user'} . ':' . $self->{'accesshash'} } );
         $self->{'operating_mode'} = 'accesshash';
     }
     elsif ( exists $self->{'pass'} ) {
