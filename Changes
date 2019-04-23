@@ -1,5 +1,9 @@
 Revision history for cPanel-PublicAPI
 
+2.4 2019-04-23
+    Add compatibility logic for cPanel API tokens.
+    Print HTTP::Tiny “content” when it gives a 599 error (e.g., TLS error).
+
 2.3  2018-12-28
     Bump version number to be strictly greater than 2.2
     Switch cPanel provided encoder to be the real encoder: Cpanel::Encoder::URI
