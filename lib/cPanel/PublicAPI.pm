@@ -29,7 +29,7 @@ package cPanel::PublicAPI;
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-our $VERSION = '2.3';
+our $VERSION = '2.4';
 
 use strict;
 use Carp            ();
@@ -434,7 +434,7 @@ sub _establish_session {
     }
 
     my $details = $resp->{'reason'};
-    $details .= " ($resp->{'content'})" if $resp->{'reason'} == 599;
+    $details .= " ($resp->{'content'})" if $resp->{'status'} == 599;
 
     $self->error("Failed to establish session and parse security token: $resp->{'status'} $details");
 
