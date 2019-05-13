@@ -1,5 +1,8 @@
 Revision history for cPanel-PublicAPI
 
+2.5 2019-05-13
+    Fix error details on 599 error (typo in 2.4 change).
+
 2.4 2019-04-23
     Add compatibility logic for cPanel API tokens.
     Print HTTP::Tiny “content” when it gives a 599 error (e.g., TLS error).
