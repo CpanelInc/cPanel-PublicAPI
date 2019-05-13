@@ -434,7 +434,7 @@ sub _establish_session {
     }
 
     my $details = $resp->{'reason'};
-    $details .= " ($resp->{'content'})" if $resp->{'reason'} == 599;
+    $details .= " ($resp->{'content'})" if $resp->{'status'} == 599;
 
     $self->error("Failed to establish session and parse security token: $resp->{'status'} $details");
 
