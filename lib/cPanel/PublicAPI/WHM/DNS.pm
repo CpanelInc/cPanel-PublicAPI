@@ -114,12 +114,7 @@ sub savezone_local {
 
 sub synczones_local {
     my ( $self, $formdata, $dnsuniqid ) = @_;
-    cPanel::PublicAPI::_init() if !exists $cPanel::PublicAPI::CFG{'init'};
-    $formdata =~ s/\&$//g;    # formdata must come pre encoded.
-    $formdata .= '&dnsuniqid=' . $cPanel::PublicAPI::CFG{'uri_encoder_func'}->($dnsuniqid);
-    my $page = join( "\n", $self->whmreq( '/scripts2/synczones_local', 'POST', $formdata ) );
-    return if $self->{'error'};
-    return $page;
+    return $self->_additional_formdata_request( 'synczones_local', $formdata, $dnsuniqid );
 }
 
 sub addzoneconf_local {
@@ -140,4 +135,25 @@ sub zoneexists_local {
         return 1;
     }
     return 0;
+}
+
+sub synckeys_local {
+    my ( $self, $formdata, $dnsuniqid ) = @_;
+    return $self->_additional_formdata_request( 'synckeys_local', $formdata, $dnsuniqid );
+}
+
+sub revokekeys_local {
+    my ( $self, $formdata, $dnsuniqid ) = @_;
+    return $self->_additional_formdata_request( 'revokekeys_local', $formdata, $dnsuniqid );
+}
+
+sub _additional_formdata_request {
+    my ( $self, $action, $formdata, $dnsuniqid ) = @_;
+
+    cPanel::PublicAPI::_init() if !exists $cPanel::PublicAPI::CFG{'init'};
+    $formdata =~ s/\&$//g;    # formdata must come pre encoded.
+    $formdata .= '&dnsuniqid=' . $cPanel::PublicAPI::CFG{'uri_encoder_func'}->($dnsuniqid);
+    my $page = join( "\n", $self->whmreq( "/scripts2/$action", 'POST', $formdata ) );
+    return if $self->{'error'};
+    return $page;
 }

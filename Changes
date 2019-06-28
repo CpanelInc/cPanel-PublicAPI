@@ -1,5 +1,8 @@
 Revision history for cPanel-PublicAPI
 
+2.6 2019-06-27
+    Implement synckeys and revokekeys for DNSSEC support in cPanel::PublicAPI::DNS
+
 2.5 2019-05-13
     Fix error details on 599 error (typo in 2.4 change).
 
