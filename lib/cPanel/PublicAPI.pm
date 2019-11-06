@@ -1,6 +1,6 @@
 package cPanel::PublicAPI;
 
-# Copyright 2017, cPanel, Inc.
+# Copyright 2019 cPanel, L.L.C.
 # All rights reserved.
 # http://cpanel.net
 #
@@ -29,7 +29,7 @@ package cPanel::PublicAPI;
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-our $VERSION = '2.5';
+our $VERSION = '2.6_01';
 
 use strict;
 use Carp            ();
@@ -54,6 +54,10 @@ my %PORT_DB = (
     },
 );
 
+sub _create_http_tiny {
+    return HTTP::Tiny->new(@_);
+}
+
 sub new {
     my ( $class, %OPTS ) = @_;
 
@@ -74,7 +78,9 @@ sub new {
         $self->{'ip'} = '127.0.0.1';
     }
 
-    $self->{'ua'} = HTTP::Tiny->new(
+    my $ua_creator = $self->{'http_tiny_creator'} || \&_create_http_tiny;
+
+    $self->{'ua'} = $ua_creator->(
         agent      => "cPanel::PublicAPI/$VERSION ",
         verify_SSL => ( exists $OPTS{'ssl_verify_mode'} ? $OPTS{'ssl_verify_mode'} : 1 ),
         keep_alive => ( exists $OPTS{'keepalive'} ? int $OPTS{'keepalive'} : 0 ),
