@@ -122,6 +122,26 @@ options for new() are specified as a hash reference, the following parameters ar
 
 =item * debug - Enables debug logging, which will place considerably more information into the error_log.
 
+=item * http_tiny_creator - An optional code reference that receives the list
+of key/value pairs that normally goes into L<HTTP::Tiny>’s constructor to
+create an instance of that class for this module’s internal use. The code
+reference, when called, should return an object that implements
+an HTTP::Tiny-compatible interface.
+
+This parameter is useful for customizing that internal
+HTTP::Tiny instance that cPanel::PublicAPI uses. Handle with care, though:
+this parameter may break cPanel::PublicAPI in various ways—some subtle,
+others less so.
+
+For example, if you want a custom User-Agent header, you might do:
+
+    http_tiny_creator => sub {
+        return HTTP::Tiny->new(
+            @_,
+            agent => 'My Custom UA String',
+        );
+    },
+
 =back
 
 =head3 Authentication methods

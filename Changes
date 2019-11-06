@@ -1,5 +1,9 @@
 Revision history for cPanel-PublicAPI
 
+2.6 2019-11-06
+    Add http_tiny_creator parameter.
+    Fix trivial typo in test error message.
+
 2.5 2019-05-13
     Fix error details on 599 error (typo in 2.4 change).
 
