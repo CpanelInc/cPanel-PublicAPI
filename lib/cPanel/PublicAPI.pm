@@ -29,7 +29,7 @@ package cPanel::PublicAPI;
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-our $VERSION = '2.6';
+our $VERSION = '2.7';
 
 use strict;
 use Carp            ();
@@ -78,7 +78,7 @@ sub new {
         $self->{'ip'} = '127.0.0.1';
     }
 
-    my $ua_creator = $self->{'http_tiny_creator'} || \&_create_http_tiny;
+    my $ua_creator = $OPTS{'http_tiny_creator'} || \&_create_http_tiny;
 
     $self->{'ua'} = $ua_creator->(
         agent      => "cPanel::PublicAPI/$VERSION ",
