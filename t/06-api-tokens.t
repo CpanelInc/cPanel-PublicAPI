@@ -119,22 +119,8 @@ $created_account = 0;
 sub _test_api_token_as_reseller {
     my ( $reseller, $password ) = @_;
 
-    my $http_tiny_creator_called;
-
     # Create the API Token
-    my $reseller_api = cPanel::PublicAPI->new(
-        'user' => $reseller,
-        'pass' => $password,
-        'ssl_verify_mode' => 0,
-        http_tiny_creator => sub {
-            $http_tiny_creator_called = 1;
-
-            return HTTP::Tiny->new(@_);
-        },
-    );
-
-    ok( $http_tiny_creator_called, 'http_tiny_creator is called' );
-
+    my $reseller_api = cPanel::PublicAPI->new( 'user' => $reseller, 'pass' => $password, 'ssl_verify_mode' => 0 );
     my $res = $reseller_api->whm_api( 'api_token_create', { 'token_name' => 'my_token' } );
     ok( $res->{'metadata'}->{'result'}, 'Successfully called api_token_create API call as reseller' );
     my $plaintext_token = $res->{'data'}->{'token'};

@@ -66,7 +66,19 @@ throws_ok {
 }
 qr/You cannot specify both an accesshash and an API token/, 'Dies when specifying both an accesshash and API token';
 
-my $pubapi = cPanel::PublicAPI->new( 'error_log' => '/dev/null' );
+my $http_tiny_creator_called;
+
+my $pubapi = cPanel::PublicAPI->new(
+    'error_log' => '/dev/null',
+        http_tiny_creator => sub {
+            $http_tiny_creator_called = 1;
+
+            return HTTP::Tiny->new(@_);
+        },
+
+);
+
+ok( $http_tiny_creator_called, 'http_tiny_creator is called' );
 
 $pubapi->error('random string');
 is( $pubapi->{'error'}, 'random string', 'Error variable is stored correctly' );
