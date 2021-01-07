@@ -87,10 +87,9 @@ $pubapi->_init();
 is( ref $cPanel::PublicAPI::CFG{'uri_encoder_func'}, 'CODE', 'URI Encoder Detected' );
 
 $pubapi->_init_serializer();
-is( ref $cPanel::PublicAPI::CFG{'api_serializer_obj'}, 'CODE', 'Serializer Module Detected' );
+is( ref $cPanel::PublicAPI::CFG{'api_decode_func'}, 'CODE', 'Serializer parse function detected' );
 like( $cPanel::PublicAPI::CFG{'serializer_module'}, qr/^JSON/, 'Serializer Module is Named' );
 is( $cPanel::PublicAPI::CFG{'serializer'},           'json', 'Serailizer format is correct' );
-is( $cPanel::PublicAPI::CFG{'serializer_can_deref'}, 0,      'Serailizer reref option set' );
 
 my $query_result = $pubapi->format_http_query( { 'one' => 'uno', 'two' => 'dos' } );
 is( $query_result, 'one=uno&two=dos', 'format_http_query' );

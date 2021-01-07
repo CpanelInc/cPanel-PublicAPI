@@ -419,7 +419,7 @@ sub api_getmsgfeed {
 
 sub serialize {
     my $self = shift;
-    return $cPanel::PublicAPI::CFG{'api_serializer_obj'}->(@_);
+    return $cPanel::PublicAPI::CFG{'api_decode_func'}->(@_);
 }
 
 1;
