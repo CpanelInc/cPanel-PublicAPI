@@ -535,7 +535,7 @@ sub _parse_returndata {
     }
     else {
         my $parsed_data;
-        eval { $parsed_data = $CFG{'serializer_can_deref'} ? $CFG{'api_serializer_obj'}->( $opts_hr->{'data'} ) : $CFG{'api_serializer_obj'}->( ${ $opts_hr->{'data'} } ); };
+        eval { $parsed_data = $CFG{'api_decode_func'}->( ${ $opts_hr->{'data'} } ); };
         if ( !ref $parsed_data ) {
             $self->error("There was an issue with parsing the following response from cPanel or WHM: [data=[${$opts_hr->{'data'}}]]");
             die $self->{'error'};
@@ -602,21 +602,21 @@ sub _init_serializer {
     my $self = shift;    #not required
     foreach my $serializer (
 
-        #module, key (cpanel api uri), deserializer function, deserializer understands references
-        [ 'JSON::Syck', 'json', \&JSON::Syck::Load,      0 ],
-        [ 'JSON',       'json', \&JSON::decode_json,     0 ],
-        [ 'JSON::XS',   'json', \&JSON::XS::decode_json, 0 ],
-        [ 'JSON::PP',   'json', \&JSON::PP::decode_json, 0 ],
+        #module, key (cpanel api uri), deserializer function name
+        [ 'JSON::Syck', 'json', 'Load'        ],
+        [ 'JSON',       'json', 'decode_json' ],
+        [ 'JSON::XS',   'json', 'decode_json' ],
+        [ 'JSON::PP',   'json', 'decode_json' ],
       ) {
         my $serializer_module = $serializer->[0];
         my $serializer_key    = $serializer->[1];
-        $CFG{'api_serializer_obj'}   = $serializer->[2];
-        $CFG{'serializer_can_deref'} = $serializer->[3];
         eval " require $serializer_module; ";
         if ( !$@ ) {
             $self->debug("loaded serializer: $serializer_module") if $self && ref $self && $self->{'debug'};
             $CFG{'serializer'}        = $CFG{'parser_key'}    = $serializer_key;
             $CFG{'serializer_module'} = $CFG{'parser_module'} = $serializer_module;
+            $CFG{'api_decode_func'} = $serializer_module->can($serializer->[2]);
+
             last;
         }
         else {
@@ -635,20 +635,21 @@ sub _init {
 
     # moved this over to a pattern to allow easy change of deps
     foreach my $encoder (
-        [ 'Cpanel/Encoder/URI.pm', \&Cpanel::Encoder::URI::uri_encode_str ],
-        [ 'URI/Escape.pm',             \&URI::Escape::uri_escape ],
+        [ 'Cpanel/Encoder/URI.pm', 'Cpanel::Encoder::URI', 'uri_encode_str' ],
+        [ 'URI/Escape.pm',         'URI::Escape', 'uri_escape' ],
       ) {
-        my $module   = $encoder->[0];
-        my $function = $encoder->[1];
-        eval { require $module; };
+        my $module_path   = $encoder->[0];
+        my $module   = $encoder->[1];
+        my $funcname = $encoder->[2];
+        eval { require $module_path; };
 
         if ( !$@ ) {
-            $self->debug("loaded encoder: $module") if $self && ref $self && $self->{'debug'};
-            $CFG{'uri_encoder_func'} = $function;
+            $self->debug("loaded encoder: $module_path") if $self && ref $self && $self->{'debug'};
+            $CFG{'uri_encoder_func'} = $module->can($funcname);
             last;
         }
         else {
-            $self->debug("failed to load encoder: $module") if $self && ref $self && $self->{'debug'};
+            $self->debug("failed to load encoder: $module_path") if $self && ref $self && $self->{'debug'};
         }
     }
     if ($@) {
