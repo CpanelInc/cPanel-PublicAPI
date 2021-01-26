@@ -1,5 +1,8 @@
 Revision history for cPanel-PublicAPI
 
+2.8 2021-01-25
+    Don’t create symbol table entries for JSON decoders we don’t load.
+
 2.7 2019-11-13
     Fix http_tiny_creator parameter handling.
 
